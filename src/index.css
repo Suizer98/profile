@@ -10,10 +10,7 @@ body,
 #root {
   min-height: 100%;
   background: #000;
-}
-
-.overflow-y-auto {
-  touch-action: none;
+  touch-action: pinch-zoom;
 }
 
 .chapter-copy,

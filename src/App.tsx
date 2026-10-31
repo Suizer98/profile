@@ -102,22 +102,28 @@ function syncScroll() {
   useStoryStore.getState().setScroll(index, blend)
 }
 
+function touchScroller(event: TouchEvent) {
+  if (event.target instanceof Element) {
+    const box = event.target.closest(".overflow-y-auto")
+    if (box instanceof HTMLElement && box.scrollHeight > box.clientHeight + 2) {
+      return box
+    }
+  }
+  return chapterTextScroller()
+}
+
 function App() {
   useEffect(() => {
     let touchY = 0
 
-    function onBoxTouchStart(event: TouchEvent) {
+    function onTouchStart(event: TouchEvent) {
       if (event.touches.length === 1) {
         touchY = event.touches[0].clientY
       }
     }
 
-    function onBoxTouchMove(event: TouchEvent) {
+    function onTouchMove(event: TouchEvent) {
       if (event.touches.length !== 1 || eventInSidebar(event)) {
-        return
-      }
-      const scroller = event.currentTarget
-      if (!(scroller instanceof HTMLElement)) {
         return
       }
       const nextY = event.touches[0].clientY
@@ -126,35 +132,33 @@ function App() {
       if (delta === 0) {
         return
       }
-      const max = scroller.scrollHeight - scroller.clientHeight
-      const next = Math.min(max, Math.max(0, scroller.scrollTop + delta))
-      const used = next - scroller.scrollTop
-      scroller.scrollTop = next
-      const rest = delta - used
+      const scroller = touchScroller(event)
+      let rest = delta
+      if (scroller) {
+        const max = scroller.scrollHeight - scroller.clientHeight
+        const next = Math.min(max, Math.max(0, scroller.scrollTop + delta))
+        const used = next - scroller.scrollTop
+        scroller.scrollTop = next
+        rest = delta - used
+      }
       if (rest !== 0) {
         window.scrollBy(0, rest)
       }
       event.preventDefault()
     }
 
-    const boxes = document.querySelectorAll<HTMLElement>(".overflow-y-auto")
-    for (const box of boxes) {
-      box.addEventListener("touchstart", onBoxTouchStart, { passive: true })
-      box.addEventListener("touchmove", onBoxTouchMove, { passive: false })
-    }
-
     syncScroll()
     window.addEventListener("scroll", syncScroll, { passive: true })
     window.addEventListener("resize", syncScroll)
     window.addEventListener("wheel", onWheel, { passive: false, capture: true })
+    document.addEventListener("touchstart", onTouchStart, { passive: true })
+    document.addEventListener("touchmove", onTouchMove, { passive: false, capture: true })
     return () => {
-      for (const box of boxes) {
-        box.removeEventListener("touchstart", onBoxTouchStart)
-        box.removeEventListener("touchmove", onBoxTouchMove)
-      }
       window.removeEventListener("scroll", syncScroll)
       window.removeEventListener("resize", syncScroll)
       window.removeEventListener("wheel", onWheel, { capture: true })
+      document.removeEventListener("touchstart", onTouchStart)
+      document.removeEventListener("touchmove", onTouchMove, { capture: true })
     }
   }, [])
 
