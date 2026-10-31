@@ -26,7 +26,7 @@ export function Chapter({ id, kicker, title, detail, children }: ChapterProps) {
   const opacity = chapterOpacity(index, blend, stopIndex)
 
   return (
-    <section data-stop={id} className="pointer-events-none h-[200vh]">
+    <section data-stop={id} className="pointer-events-none h-[140vh] md:h-[200vh]">
       <div className="sticky top-0 flex h-dvh items-end px-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:h-screen md:px-5 md:pr-[8vw] md:pb-[12vh] md:pl-[17rem]">
         <div
           aria-hidden
