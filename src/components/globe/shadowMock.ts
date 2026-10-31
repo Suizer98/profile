@@ -9,8 +9,13 @@ const nusIndex = cameraStops.findIndex((stop) => stop.id === "nus")
 const laneOffsetMeters = 6
 const travelSeconds = 1.05
 const lightCycleSeconds = 1.35
-const movingTrail = 18
-const stoppedTrail = 6
+const movingTrail = 52
+const stoppedTrail = 10
+const flowStops = [
+  { amount: 0, red: 0, green: 128, blue: 255 },
+  { amount: 0.5, red: 0, green: 230, blue: 190 },
+  { amount: 1, red: 210, green: 255, blue: 70 },
+]
 const metersPerDegreeLat = 110540
 const metersPerDegreeLon = 111320 * Math.cos((1.296 * Math.PI) / 180)
 
@@ -258,7 +263,7 @@ export function createShadowMock(view: SceneView, canvas: HTMLCanvasElement) {
     for (const lane of lanes) {
       const open = lane.axis === "east" ? eastOpen : !eastOpen
       stepCars(lane.cars, lane.signals, open, dt)
-      drawLane(context, project(lane.line), lane.cars, clock)
+      drawLane(context, project(lane.line), lane.cars)
     }
     frame = window.requestAnimationFrame(draw)
   }
@@ -333,9 +338,10 @@ function stepCars(cars: Car[], signals: number[], open: boolean, dt: number) {
   }
 }
 
-function drawLane(context: CanvasRenderingContext2D, screen: Array<ScreenPoint | null>, cars: Car[], clock: number) {
+function drawLane(context: CanvasRenderingContext2D, screen: Array<ScreenPoint | null>, cars: Car[]) {
   context.lineCap = "round"
   context.lineJoin = "round"
+  context.globalCompositeOperation = "lighter"
   for (const run of splitRuns(screen)) {
     const lengths = [0]
     for (let index = 1; index < run.length; index += 1) {
@@ -352,65 +358,39 @@ function drawLane(context: CanvasRenderingContext2D, screen: Array<ScreenPoint |
       if (head - tail < 2) {
         continue
       }
-      const hue = (car.along * 320 + clock * 36) % 360
+      const magnitude = Math.min(1, car.along * 0.78 + (car.pace - 0.84) * 0.7)
       const tailPoint = pointAlong(run, lengths, tail)
       const headPoint = pointAlong(run, lengths, head)
-      const glow = context.createLinearGradient(tailPoint.x, tailPoint.y, headPoint.x, headPoint.y)
-      glow.addColorStop(0, shadowColor(hue, 0))
-      glow.addColorStop(0.4, shadowColor(hue + 36, car.waiting ? 0.45 : 0.28))
-      glow.addColorStop(1, shadowColor(hue + 84, car.waiting ? 0.95 : 0.72))
+      const trailPaint = context.createLinearGradient(tailPoint.x, tailPoint.y, headPoint.x, headPoint.y)
+      trailPaint.addColorStop(0, flowColor(magnitude, 0))
+      trailPaint.addColorStop(0.62, flowColor(magnitude, car.waiting ? 0.28 : 0.45))
+      trailPaint.addColorStop(1, flowColor(magnitude, car.waiting ? 0.7 : 0.95))
       traceSpan(context, run, lengths, tail, head)
-      context.globalCompositeOperation = "lighter"
-      context.lineWidth = car.waiting ? 8 : 6.5
-      context.strokeStyle = glow
-      context.stroke()
-      const core = context.createLinearGradient(tailPoint.x, tailPoint.y, headPoint.x, headPoint.y)
-      core.addColorStop(0, shadowColor(hue + 18, 0.08))
-      core.addColorStop(0.5, shadowColor(hue + 52, 0.82))
-      core.addColorStop(1, "rgba(255, 255, 255, 0.96)")
-      traceSpan(context, run, lengths, tail, head)
-      context.globalCompositeOperation = "source-over"
-      context.lineWidth = car.waiting ? 2.4 : 2
-      context.strokeStyle = core
+      context.lineWidth = car.waiting ? 1.6 : 2.2
+      context.strokeStyle = trailPaint
       context.stroke()
     }
   }
+  context.globalCompositeOperation = "source-over"
 }
 
-function shadowColor(hue: number, alpha: number) {
-  const [red, green, blue] = hslToRgb(hue, 0.95, 0.62)
-  return `rgba(${red}, ${green}, ${blue}, ${alpha})`
-}
-
-function hslToRgb(hue: number, saturation: number, lightness: number) {
-  const wrapped = ((hue % 360) + 360) % 360
-  const channel = wrapped / 60
-  const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation
-  const match = lightness - chroma / 2
-  const secondary = chroma * (1 - Math.abs((channel % 2) - 1))
-  let red = 0
-  let green = 0
-  let blue = 0
-  if (channel < 1) {
-    red = chroma
-    green = secondary
-  } else if (channel < 2) {
-    red = secondary
-    green = chroma
-  } else if (channel < 3) {
-    green = chroma
-    blue = secondary
-  } else if (channel < 4) {
-    green = secondary
-    blue = chroma
-  } else if (channel < 5) {
-    red = secondary
-    blue = chroma
-  } else {
-    red = chroma
-    blue = secondary
+function flowColor(magnitude: number, alpha: number) {
+  const amount = Math.min(1, Math.max(0, magnitude))
+  let lower = flowStops[0]
+  let upper = flowStops[flowStops.length - 1]
+  for (let index = 1; index < flowStops.length; index += 1) {
+    if (amount <= flowStops[index].amount) {
+      lower = flowStops[index - 1]
+      upper = flowStops[index]
+      break
+    }
   }
-  return [Math.round((red + match) * 255), Math.round((green + match) * 255), Math.round((blue + match) * 255)]
+  const span = upper.amount - lower.amount || 1
+  const mix = (amount - lower.amount) / span
+  const red = Math.round(lower.red + (upper.red - lower.red) * mix)
+  const green = Math.round(lower.green + (upper.green - lower.green) * mix)
+  const blue = Math.round(lower.blue + (upper.blue - lower.blue) * mix)
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`
 }
 
 function offsetLine(line: Array<[number, number]>, meters: number) {
