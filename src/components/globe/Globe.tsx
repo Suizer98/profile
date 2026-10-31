@@ -14,6 +14,7 @@ import { createSeaMock } from "./seaMock.ts"
 import { createShadowMock } from "./shadowMock.ts"
 import { createTrafficMock } from "./trafficMock.ts"
 import { createSatelliteMockLayer, startSatellites, syncSatelliteVisibility } from "./satelliteMock.ts"
+import { createWeatherLoop } from "./weatherLoop.ts"
 import { cameraStops } from "./stops.ts"
 import { satelliteMockId, seaMockId, shadowMockId, trafficMockId, useLayerStore } from "../../store/useLayerStore.ts"
 
@@ -165,6 +166,7 @@ export function Globe() {
     const traffic = trafficCanvas ? createTrafficMock(view, trafficCanvas) : null
     const shadowCanvas = shadowCanvasRef.current
     const shadow = shadowCanvas ? createShadowMock(view, shadowCanvas) : null
+    const weather = createWeatherLoop(view)
     const unsubscribeLayers = useLayerStore.subscribe((state) => {
       const satellite = state.layers.find((item) => item.id === satelliteMockId)
       satelliteLayer.visible = satellite?.visible ?? false
@@ -187,6 +189,7 @@ export function Globe() {
         sea?.sync()
         traffic?.sync()
         shadow?.sync()
+        weather.sync()
       }
       if (state.index !== previous.index) {
         preloadFrom(state.index)
@@ -202,6 +205,7 @@ export function Globe() {
         sea?.sync()
         traffic?.sync()
         shadow?.sync()
+        weather.sync()
         useStoryStore.getState().setReady(true)
         preloadFrom(useStoryStore.getState().index)
       })
@@ -217,6 +221,7 @@ export function Globe() {
       sea?.remove()
       traffic?.remove()
       shadow?.remove()
+      weather.remove()
       unsubscribeLayers()
       unsubscribe()
       view.destroy()

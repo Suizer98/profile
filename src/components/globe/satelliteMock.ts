@@ -81,8 +81,14 @@ export function startSatellites(view: SceneView, layer: GraphicsLayer) {
     orbits.forEach((orbit, index) => {
       const graphic = graphics[index]
       const point = satellitePoint(orbit, seconds)
+      const longitude = point.longitude
+      const latitude = point.latitude
       graphic.geometry = point
-      graphic.visible = !behindEarth(view, point.longitude, point.latitude, orbit.altitude)
+      if (longitude == null || latitude == null) {
+        graphic.visible = false
+        return
+      }
+      graphic.visible = !behindEarth(view, longitude, latitude, orbit.altitude)
     })
     frame = window.requestAnimationFrame(draw)
   }
