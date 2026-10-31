@@ -106,36 +106,55 @@ function App() {
   useEffect(() => {
     let touchY = 0
 
-    function onTouchStart(event: TouchEvent) {
+    function onBoxTouchStart(event: TouchEvent) {
       if (event.touches.length === 1) {
         touchY = event.touches[0].clientY
       }
     }
 
-    function onTouchMove(event: TouchEvent) {
+    function onBoxTouchMove(event: TouchEvent) {
       if (event.touches.length !== 1 || eventInSidebar(event)) {
+        return
+      }
+      const scroller = event.currentTarget
+      if (!(scroller instanceof HTMLElement)) {
         return
       }
       const nextY = event.touches[0].clientY
       const delta = touchY - nextY
       touchY = nextY
-      if (scrollChapterText(delta)) {
-        event.preventDefault()
+      if (delta === 0) {
+        return
       }
+      const max = scroller.scrollHeight - scroller.clientHeight
+      const next = Math.min(max, Math.max(0, scroller.scrollTop + delta))
+      const used = next - scroller.scrollTop
+      scroller.scrollTop = next
+      const rest = delta - used
+      if (rest !== 0) {
+        window.scrollBy(0, rest)
+      }
+      event.preventDefault()
+    }
+
+    const boxes = document.querySelectorAll<HTMLElement>(".overflow-y-auto")
+    for (const box of boxes) {
+      box.addEventListener("touchstart", onBoxTouchStart, { passive: true })
+      box.addEventListener("touchmove", onBoxTouchMove, { passive: false })
     }
 
     syncScroll()
     window.addEventListener("scroll", syncScroll, { passive: true })
     window.addEventListener("resize", syncScroll)
     window.addEventListener("wheel", onWheel, { passive: false, capture: true })
-    window.addEventListener("touchstart", onTouchStart, { passive: true })
-    window.addEventListener("touchmove", onTouchMove, { passive: false, capture: true })
     return () => {
+      for (const box of boxes) {
+        box.removeEventListener("touchstart", onBoxTouchStart)
+        box.removeEventListener("touchmove", onBoxTouchMove)
+      }
       window.removeEventListener("scroll", syncScroll)
       window.removeEventListener("resize", syncScroll)
       window.removeEventListener("wheel", onWheel, { capture: true })
-      window.removeEventListener("touchstart", onTouchStart)
-      window.removeEventListener("touchmove", onTouchMove, { capture: true })
     }
   }, [])
 

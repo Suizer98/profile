@@ -12,6 +12,10 @@ body,
   background: #000;
 }
 
+.overflow-y-auto {
+  touch-action: none;
+}
+
 .chapter-copy,
 .chapter-copy a {
   text-shadow:
