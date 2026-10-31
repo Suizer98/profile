@@ -18,13 +18,13 @@ export function Education() {
         </Text>
       </Chapter>
       <Chapter id={competition.id} kicker={competition.kicker} title={competition.title} detail={competition.detail}>
-        <Stack gap={6} className="max-w-xl">
+        <Stack gap={6} className="pointer-events-auto max-w-xl">
           <Text fw={500} c="white" className={copyClass}>
             A web GIS project on EV charging stations and economic areas, held at UTM for the Grab GeoStars Program
             2022. Grab is a Southeast Asian app for transport and food delivery.
           </Text>
           <Text fw={500} c="white" className={copyClass}>
-            <a href={journalHref} target="_blank" rel="noopener noreferrer">
+            <a href={journalHref} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline" }}>
               Download the journal
             </a>
           </Text>
