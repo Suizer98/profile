@@ -8,7 +8,7 @@ export function Certs() {
   const stop = stopById("certs")
   return (
     <Chapter id={stop.id} kicker={stop.kicker} title={stop.title} detail={stop.detail}>
-      <ul className="pointer-events-auto mt-2 grid max-h-[38vh] grid-cols-1 gap-x-6 gap-y-0.5 overflow-y-auto pr-2 md:grid-cols-2">
+      <ul className="pointer-events-auto mt-1 grid max-h-[26vh] grid-cols-1 gap-x-6 gap-y-0.5 overflow-y-auto pr-2 md:mt-2 md:max-h-[38vh] md:grid-cols-2">
         {certificationsData.map((certification) => (
           <li key={certification.name}>
             <a

@@ -19,7 +19,7 @@ export function Experiences() {
           >
             <Stack gap={2} mt={4}>
               {experience.lines.map((line) => (
-                <Text key={line} size="sm" c="white" fw={500} className="max-w-xl">
+                <Text key={line} c="white" fw={500} className="max-w-xl text-[0.95rem] leading-snug md:text-sm md:leading-normal">
                   {line}
                 </Text>
               ))}

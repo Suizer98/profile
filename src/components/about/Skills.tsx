@@ -8,7 +8,7 @@ export function Skills() {
   const stop = stopById("skills")
   return (
     <Chapter id={stop.id} kicker={stop.kicker} title={stop.title} detail={stop.detail}>
-      <ul className="pointer-events-auto mt-2 max-h-[34vh] list-none space-y-3 overflow-y-auto pr-2">
+      <ul className="pointer-events-auto mt-1 max-h-[26vh] list-none space-y-2 overflow-y-auto pr-2 md:mt-2 md:max-h-[34vh] md:space-y-3">
         {skillGroups.map((group) => (
           <li key={group.title}>
             <Text size="xs" c="white" fw={600} tt="uppercase" style={{ letterSpacing: "0.08em" }}>

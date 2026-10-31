@@ -8,7 +8,7 @@ export function Projects() {
   const stop = stopById("projects")
   return (
     <Chapter id={stop.id} kicker={stop.kicker} title={stop.title} detail={stop.detail}>
-      <Stack gap={0} mt={4} className="pointer-events-auto max-h-[38vh] overflow-y-auto pr-2">
+      <Stack gap={0} mt={2} className="pointer-events-auto max-h-[26vh] overflow-y-auto pr-2 md:mt-1 md:max-h-[38vh]">
         {projectsData.map((project) => (
           <a
             key={project.title}

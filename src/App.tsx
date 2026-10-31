@@ -54,7 +54,7 @@ function App() {
     <>
       <Globe />
       <div
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-[5] h-[72vh]"
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-[5] h-[48vh] md:h-[72vh]"
         style={{
           background:
             "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.55) 42%, rgba(0,0,0,0.18) 72%, transparent 100%)",

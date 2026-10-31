@@ -12,11 +12,11 @@ export function About() {
   return (
     <>
       <Chapter id={about.id} kicker={about.kicker} title={about.title} detail="">
-        <div className="pointer-events-auto max-h-[34vh] max-w-xl overflow-y-auto pr-2">
-          <Text size="md" fw={500} c="white" className="text-justify">
+        <div className="pointer-events-auto max-h-[26vh] max-w-xl overflow-y-auto pr-2 md:max-h-[34vh]">
+          <Text fw={500} c="white" className="text-left text-[0.95rem] leading-snug md:text-justify md:text-base md:leading-normal">
             {about.detail}
           </Text>
-          <Text size="md" fw={500} c="white" className="text-justify" mt="md">
+          <Text fw={500} c="white" className="text-left text-[0.95rem] leading-snug md:text-justify md:text-base md:leading-normal" mt="sm">
             Through my experience at Esri, a global leader in GIS technology, I have developed expertise
             in building and implementing software solutions that address complex geospatial challenges.
             My cross-disciplinary background in geomatics engineering and full-stack software
