@@ -6,12 +6,10 @@ import { useStoryStore } from "../../store/useStoryStore.ts"
 import { cameraStops } from "./stops.ts"
 
 const jkLandIndex = cameraStops.findIndex((stop) => stop.id === "jk-land")
-const laneOffsets = [12]
-const trailPixels = 28
-const trailCoreWidth = 2
-const trailGlowWidth = 5
-const particleCount = 22
-const lapSeconds = 22
+const laneOffsets = [7]
+const trailPixels = 120
+const particleCount = 20
+const lapSeconds = 18
 const metersPerDegreeLat = 110540
 const metersPerDegreeLon = 111320 * Math.cos((1.526 * Math.PI) / 180)
 
@@ -121,13 +119,13 @@ type ScreenPoint = {
 
 type Drifter = {
   along: number
-  magnitude: number
+  pace: number
 }
 
 const flowStops = [
-  { amount: 0, red: 40, green: 146, blue: 199 },
-  { amount: 0.5, red: 160, green: 194, blue: 155 },
-  { amount: 1, red: 218, green: 230, blue: 119 },
+  { amount: 0, red: 0, green: 128, blue: 255 },
+  { amount: 0.5, red: 0, green: 230, blue: 190 },
+  { amount: 1, red: 210, green: 255, blue: 70 },
 ]
 
 export function trafficVisibleForStory(index: number) {
@@ -292,20 +290,21 @@ function splitRuns(screen: Array<ScreenPoint | null>) {
 
 function makeDrifters(phase: number) {
   return Array.from({ length: particleCount }, (_, index) => ({
-    along: (index / particleCount + phase * 0.31) % 1,
-    magnitude: (index * 0.37 + phase) % 1,
+    along: (index / particleCount + phase * 0.37) % 1,
+    pace: 0.72 + ((index * 3 + Math.round(phase * 10)) % 7) * 0.1,
   }))
 }
 
 function stepDrifters(drifters: Drifter[], dt: number) {
   for (const drifter of drifters) {
-    drifter.along = (drifter.along + dt / lapSeconds) % 1
+    drifter.along = (drifter.along + (dt / lapSeconds) * drifter.pace) % 1
   }
 }
 
 function drawFlowLane(context: CanvasRenderingContext2D, screen: Array<ScreenPoint | null>, drifters: Drifter[]) {
   context.lineCap = "round"
   context.lineJoin = "round"
+  context.globalCompositeOperation = "lighter"
   for (const run of splitRuns(screen)) {
     const lengths = [0]
     for (let index = 1; index < run.length; index += 1) {
@@ -315,31 +314,35 @@ function drawFlowLane(context: CanvasRenderingContext2D, screen: Array<ScreenPoi
     if (total < 12) {
       continue
     }
+    context.beginPath()
+    context.moveTo(run[0].x, run[0].y)
+    for (let index = 1; index < run.length; index += 1) {
+      context.lineTo(run[index].x, run[index].y)
+    }
+    context.lineWidth = 5
+    context.strokeStyle = "rgba(0, 140, 255, 0.22)"
+    context.stroke()
     for (const drifter of drifters) {
+      const magnitude = Math.min(1, Math.max(0, (drifter.pace - 0.72) / 0.6))
+      const trail = trailPixels * (0.55 + magnitude * 0.7)
       const head = drifter.along * total
-      const tail = Math.max(0, head - trailPixels)
-      if (head - tail < 2) {
+      const tail = Math.max(0, head - trail)
+      if (head - tail < 3) {
         continue
       }
       const tailPoint = pointAlong(run, lengths, tail)
       const headPoint = pointAlong(run, lengths, head)
+      const paint = context.createLinearGradient(tailPoint.x, tailPoint.y, headPoint.x, headPoint.y)
+      paint.addColorStop(0, flowColor(magnitude, 0))
+      paint.addColorStop(0.55, flowColor(magnitude, 0.38))
+      paint.addColorStop(1, flowColor(magnitude, 0.95))
       traceSpan(context, run, lengths, tail, head)
-      const glow = context.createLinearGradient(tailPoint.x, tailPoint.y, headPoint.x, headPoint.y)
-      glow.addColorStop(0, flowColor(drifter.magnitude, 0.05))
-      glow.addColorStop(1, flowColor(drifter.magnitude, 0.4))
-      context.lineWidth = trailGlowWidth
-      context.strokeStyle = glow
-      context.stroke()
-      traceSpan(context, run, lengths, tail, head)
-      const core = context.createLinearGradient(tailPoint.x, tailPoint.y, headPoint.x, headPoint.y)
-      core.addColorStop(0, flowColor(drifter.magnitude, 0.15))
-      core.addColorStop(0.45, flowColor(drifter.magnitude, 0.6))
-      core.addColorStop(1, flowColor(drifter.magnitude, 1))
-      context.lineWidth = trailCoreWidth
-      context.strokeStyle = core
+      context.lineWidth = 2.2 + magnitude * 1.6
+      context.strokeStyle = paint
       context.stroke()
     }
   }
+  context.globalCompositeOperation = "source-over"
 }
 
 function pointAlong(run: ScreenPoint[], lengths: number[], distance: number) {
