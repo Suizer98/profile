@@ -3,12 +3,10 @@ import { Text } from "@mantine/core"
 import { Chapter } from "../chapter/Chapter.tsx"
 import { stopById } from "../globe/stops.ts"
 import { Education } from "./Education.tsx"
-import { Experiences } from "./Experiences.tsx"
 import { Skills } from "./Skills.tsx"
 
 export function About() {
   const about = stopById("about")
-  const horizon = stopById("horizon")
   return (
     <>
       <Chapter id={about.id} kicker={about.kicker} title={about.title} detail="">
@@ -27,8 +25,6 @@ export function About() {
       </Chapter>
       <Skills />
       <Education />
-      <Chapter id={horizon.id} kicker={horizon.kicker} title={horizon.title} detail={horizon.detail} />
-      <Experiences />
     </>
   )
 }

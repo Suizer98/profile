@@ -75,8 +75,8 @@ export const cameraStops: CameraStop[] = [
   },
   {
     id: "horizon",
-    label: "Work",
-    kicker: "Work",
+    label: "Professional Experiences",
+    kicker: "Professional Experiences",
     title: "Bringing you to my work horizons",
     detail: "",
     longitude: 103.7,

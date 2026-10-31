@@ -19,6 +19,12 @@ const sideNav: NavItem[] = [
       { id: "skills", label: "Tech stacks" },
       { id: "utm", label: "Education" },
       { id: "geostars", label: "Competition" },
+    ],
+  },
+  {
+    id: "horizon",
+    label: "Professional Experiences",
+    children: [
       { id: "jk-land", label: "JK Land" },
       { id: "nus", label: "NUS" },
       { id: "esri", label: "Esri Singapore" },

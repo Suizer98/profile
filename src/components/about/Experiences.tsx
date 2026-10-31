@@ -5,8 +5,10 @@ import { stopById } from "../globe/stops.ts"
 import { experiencesData } from "./Data.ts"
 
 export function Experiences() {
+  const horizon = stopById("horizon")
   return (
     <>
+      <Chapter id={horizon.id} kicker={horizon.kicker} title={horizon.title} detail={horizon.detail} />
       {experiencesData.map((experience) => {
         const stop = stopById(experience.id)
         return (

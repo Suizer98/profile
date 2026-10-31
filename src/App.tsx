@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 
 import { About } from "./components/about/About.tsx"
+import { Experiences } from "./components/about/Experiences.tsx"
 import { Certs } from "./components/certs/Certs.tsx"
 import { Contact } from "./components/contact/Contact.tsx"
 import { Globe } from "./components/globe/Globe.tsx"
@@ -151,6 +152,7 @@ function App() {
       <main className="relative z-10">
         <Home />
         <About />
+        <Experiences />
         <Projects />
         <Certs />
         <Contact />
