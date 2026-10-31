@@ -1,0 +1,11 @@
+services:
+  profile:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    command: npm run dev -- --host 0.0.0.0 --port 3000
+    volumes:
+      - ./:/usr/local/app
+      - /usr/local/app/node_modules
+    ports:
+      - "3000:3000"
