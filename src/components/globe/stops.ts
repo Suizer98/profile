@@ -31,8 +31,8 @@ export const cameraStops: CameraStop[] = [
     title: "Closer in",
     detail:
       "A software engineer specialising in full-stack web development, with a strong foundation in GIS and geomatics engineering. My passionate curiosity drives me to develop innovative, scalable, and user-centric software solutions that integrate modern web technologies to address complex real-world challenges.",
-    longitude: 103.15,
-    latitude: -0.39,
+    longitude: 103.82,
+    latitude: -0.4879,
     altitude: 300000,
     tilt: 34,
     heading: 0,
@@ -44,9 +44,9 @@ export const cameraStops: CameraStop[] = [
     title: "Tech stacks",
     detail: "Languages, web, cloud, and GIS.",
     longitude: 103.82,
-    latitude: 1.17,
-    altitude: 38000,
-    tilt: 26,
+    latitude: 0.85,
+    altitude: 36000,
+    tilt: 50,
     heading: 0,
   },
   {

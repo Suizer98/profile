@@ -10,7 +10,7 @@ import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type P
 import { useStoryStore } from "../../store/useStoryStore.ts"
 import { atWorkplace, holdingAtWorkplace, orbitWorkplace, sampleCamera } from "./cameraPath.ts"
 import { preloadImagery, stopPreload } from "./preloadTiles.ts"
-import { createSeaMock, seaMobileLongitude, seaVisibleForStory } from "./seaMock.ts"
+import { createSeaMock } from "./seaMock.ts"
 import { createShadowMock } from "./shadowMock.ts"
 import { createTrafficMock } from "./trafficMock.ts"
 import { createSatelliteMockLayer, startSatellites, syncSatelliteVisibility } from "./satelliteMock.ts"
@@ -47,10 +47,9 @@ export function Globe() {
     const sampled = atWorkplace(index) && parked
       ? orbitWorkplace(index, headingOffset.current)
       : sampleCamera(index, blend)
-    const seaShift = seaVisibleForStory(index) ? seaMobileLongitude(sampled.altitude) : 0
     view.camera = new Camera({
       position: {
-        longitude: sampled.longitude + seaShift,
+        longitude: sampled.longitude,
         latitude: sampled.latitude,
         z: sampled.altitude,
       },

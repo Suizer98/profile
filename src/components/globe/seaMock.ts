@@ -57,15 +57,6 @@ export function seaVisibleForStory(index: number) {
   return index >= aboutIndex && index <= skillsIndex
 }
 
-export function seaMobileLongitude(altitude: number) {
-  if (window.innerWidth >= 768) {
-    return 0
-  }
-  const halfAngle = (13.5 * Math.PI) / 180
-  const spanDegrees = (altitude * Math.tan(halfAngle) * 2) / 111320
-  return -spanDegrees * 0.28
-}
-
 export function createSeaMock(view: SceneView, canvas: HTMLCanvasElement) {
   const particles = Array.from({ length: particleCount }, () => makeDrifter(false))
   const ships = Array.from({ length: shipCount }, () => makeDrifter(true))
