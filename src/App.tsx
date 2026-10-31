@@ -9,6 +9,68 @@ import { Projects } from "./components/projects/Projects.tsx"
 import { Sidebar } from "./components/sidebar/Sidebar.tsx"
 import { useStoryStore } from "./store/useStoryStore.ts"
 
+function currentStop() {
+  const stops = document.querySelectorAll<HTMLElement>("[data-stop]")
+  let current: HTMLElement | null = null
+  for (const stop of stops) {
+    if (window.scrollY >= stop.offsetTop) {
+      current = stop
+    }
+  }
+  return current
+}
+
+function chapterTextScroller() {
+  const stop = currentStop()
+  if (!stop) {
+    return null
+  }
+  const boxes = stop.querySelectorAll<HTMLElement>(".overflow-y-auto")
+  for (const box of boxes) {
+    if (box.scrollHeight > box.clientHeight + 2) {
+      return box
+    }
+  }
+  return null
+}
+
+function scrollChapterText(delta: number) {
+  if (delta === 0) {
+    return false
+  }
+  const scroller = chapterTextScroller()
+  if (!scroller) {
+    return false
+  }
+  const max = scroller.scrollHeight - scroller.clientHeight
+  const next = Math.min(max, Math.max(0, scroller.scrollTop + delta))
+  if (next === scroller.scrollTop) {
+    return false
+  }
+  scroller.scrollTop = next
+  return true
+}
+
+function eventInSidebar(event: Event) {
+  return event.target instanceof Element && Boolean(event.target.closest("nav"))
+}
+
+function onWheel(event: WheelEvent) {
+  if (event.ctrlKey || eventInSidebar(event) || Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+    return
+  }
+  let delta = event.deltaY
+  if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) {
+    delta *= 16
+  }
+  if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+    delta *= window.innerHeight
+  }
+  if (scrollChapterText(delta)) {
+    event.preventDefault()
+  }
+}
+
 function syncScroll() {
   const stops = document.querySelectorAll<HTMLElement>("[data-stop]")
   if (stops.length < 2) {
@@ -41,12 +103,38 @@ function syncScroll() {
 
 function App() {
   useEffect(() => {
+    let touchY = 0
+
+    function onTouchStart(event: TouchEvent) {
+      if (event.touches.length === 1) {
+        touchY = event.touches[0].clientY
+      }
+    }
+
+    function onTouchMove(event: TouchEvent) {
+      if (event.touches.length !== 1 || eventInSidebar(event)) {
+        return
+      }
+      const nextY = event.touches[0].clientY
+      const delta = touchY - nextY
+      touchY = nextY
+      if (scrollChapterText(delta)) {
+        event.preventDefault()
+      }
+    }
+
     syncScroll()
     window.addEventListener("scroll", syncScroll, { passive: true })
     window.addEventListener("resize", syncScroll)
+    window.addEventListener("wheel", onWheel, { passive: false, capture: true })
+    window.addEventListener("touchstart", onTouchStart, { passive: true })
+    window.addEventListener("touchmove", onTouchMove, { passive: false, capture: true })
     return () => {
       window.removeEventListener("scroll", syncScroll)
       window.removeEventListener("resize", syncScroll)
+      window.removeEventListener("wheel", onWheel, { capture: true })
+      window.removeEventListener("touchstart", onTouchStart)
+      window.removeEventListener("touchmove", onTouchMove, { capture: true })
     }
   }, [])
 
