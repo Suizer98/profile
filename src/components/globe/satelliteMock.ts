@@ -11,15 +11,18 @@ import { useStoryStore } from "../../store/useStoryStore.ts"
 const hideBlend = 0.45
 const earthRadius = 6371000
 
-const satelliteSymbol = new PointSymbol3D({
-  symbolLayers: [
-    new IconSymbol3DLayer({
-      resource: { href: "/satellite2.png" },
-      size: 52,
-      anchor: "center",
-    }),
-  ],
-})
+function createSatelliteSymbol() {
+  const narrow = window.matchMedia("(max-width: 767px)").matches
+  return new PointSymbol3D({
+    symbolLayers: [
+      new IconSymbol3DLayer({
+        resource: { href: "/satellite2.png" },
+        size: narrow ? 70 : 52,
+        anchor: "center",
+      }),
+    ],
+  })
+}
 
 type Orbit = {
   name: string
@@ -32,8 +35,8 @@ type Orbit = {
 }
 
 const orbits: Orbit[] = [
-  { name: "G1", altitude: 980000, inclination: 28, node: 96, phase: 0.7, speed: (2 * Math.PI) / 420, direction: 1 },
-  { name: "G2", altitude: 1120000, inclination: 55, node: 118, phase: 0.7, speed: (2 * Math.PI) / 500, direction: 1 },
+  { name: "G1", altitude: 1200000, inclination: 70, node: 64, phase: 0.91, speed: (2 * Math.PI) / 520, direction: 1 },
+  { name: "G2", altitude: 1450000, inclination: 70, node: 96, phase: 0.91, speed: (2 * Math.PI) / 560, direction: -1 },
   { name: "G3", altitude: 1280000, inclination: 22, node: 150, phase: 0, speed: (2 * Math.PI) / 380, direction: -1 },
   { name: "G4", altitude: 1420000, inclination: 74, node: 70, phase: 0.52, speed: (2 * Math.PI) / 560, direction: -1 },
   { name: "G5", altitude: 1560000, inclination: 40, node: 80, phase: 0.87, speed: (2 * Math.PI) / 460, direction: 1 },
@@ -56,11 +59,12 @@ export function createSatelliteMockLayer() {
 }
 
 export function startSatellites(view: SceneView, layer: GraphicsLayer) {
+  const symbol = createSatelliteSymbol()
   const graphics = orbits.map(
     (orbit) =>
       new Graphic({
         geometry: satellitePoint(orbit, 0),
-        symbol: satelliteSymbol,
+        symbol,
         attributes: { name: `Satellite ${orbit.name}`, altitude: orbit.altitude },
       }),
   )
