@@ -4,7 +4,7 @@ import { useStoryStore } from "../../store/useStoryStore.ts"
 import { cameraStops } from "./stops.ts"
 
 const esriIndex = cameraStops.findIndex((stop) => stop.id === "esri")
-const stepSeconds = 1.15
+const stepSeconds = 5
 
 const steps = [
   { type: "sunny" as const, cloudCover: 0.04 },
