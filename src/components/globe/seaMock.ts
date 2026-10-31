@@ -118,46 +118,21 @@ export function createSeaMock(view: SceneView, canvas: HTMLCanvasElement) {
     const span = Math.min(3.4, Math.max(0.7, (position?.z ?? 180000) / 62000))
     const originLon = position?.longitude ?? 104.2
     const originLat = position?.latitude ?? 1.1
-    const narrow = window.innerWidth < 768
-    const focusX = window.innerWidth * 0.5
-    const focusY = window.innerHeight * (narrow ? 0.3 : 0.48)
-    let best: { lon: number; lat: number; score: number } | null = null
-    const attempts = narrow ? 28 : 12
+    const attempts = window.innerWidth < 768 ? 24 : 12
     for (let attempt = 0; attempt < attempts; attempt += 1) {
-      const shiftLon = narrow ? span * 0.08 : span * 0.28
-      const shiftLat = narrow ? span * 0.34 : span * 0.22
-      const lon = originLon + shiftLon + (Math.random() - 0.5) * span * (narrow ? 0.7 : 1)
-      const lat = originLat + shiftLat + (Math.random() - 0.5) * span * (narrow ? 0.55 : 0.85)
+      const lon = originLon + span * 0.28 + (Math.random() - 0.5) * span
+      const lat = originLat + span * 0.22 + (Math.random() - 0.5) * span * 0.85
       const flow = sampleFlow(ship ? "current" : "wind", lon, lat, clock)
       const sea = ship ? flow : sampleFlow("current", lon, lat, clock)
-      const screen = project(lon, lat)
-      if (!flow || !sea || (ship && !isOcean(lon, lat)) || !screen) {
+      if (!flow || !sea || (ship && !isOcean(lon, lat)) || !project(lon, lat)) {
         continue
       }
-      const dx = (screen.x - focusX) / window.innerWidth
-      const dy = (screen.y - focusY) / window.innerHeight
-      const score = dx * dx + dy * dy
-      if (!narrow) {
-        drifter.lon = lon
-        drifter.lat = lat
-        drifter.age = Math.random() * 1.5
-        drifter.life = ship ? 26 + Math.random() * 16 : 5 + Math.random() * 5
-        return
-      }
-      if (!best || score < best.score) {
-        best = { lon, lat, score }
-      }
-      if (score < 0.045) {
-        break
-      }
-    }
-    if (!best) {
+      drifter.lon = lon
+      drifter.lat = lat
+      drifter.age = Math.random() * 1.5
+      drifter.life = ship ? 26 + Math.random() * 16 : 5 + Math.random() * 5
       return
     }
-    drifter.lon = best.lon
-    drifter.lat = best.lat
-    drifter.age = Math.random() * 1.5
-    drifter.life = ship ? 26 + Math.random() * 16 : 5 + Math.random() * 5
   }
 
   function step(drifter: Drifter, ship: boolean, dt: number, cycle: number) {
@@ -193,10 +168,6 @@ export function createSeaMock(view: SceneView, canvas: HTMLCanvasElement) {
     const dx = after.x - before.x
     const dy = after.y - before.y
     if (dx * dx + dy * dy > 34 * 34) {
-      place(drifter, ship)
-      return null
-    }
-    if (window.innerWidth < 768 && after.y > window.innerHeight * 0.5) {
       place(drifter, ship)
       return null
     }
