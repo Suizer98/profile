@@ -89,12 +89,12 @@ export function Sidebar() {
           aria-label="Open menu"
           aria-expanded={false}
           onClick={() => setOpen(true)}
-          className="fixed top-4 left-4 z-40 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/40 bg-white/20 shadow-lg backdrop-blur-xl"
+          className="fixed top-4 left-4 z-40 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/40 bg-white/20 shadow-lg backdrop-blur-xl"
         >
-          <span className="relative block h-3.5 w-5">
-            <span className="absolute top-0 left-0 h-0.5 w-5 bg-white" />
-            <span className="absolute top-1.5 left-0 h-0.5 w-5 bg-white" />
-            <span className="absolute top-3 left-0 h-0.5 w-5 bg-white" />
+          <span className="relative block h-4 w-6">
+            <span className="absolute top-0 left-0 h-0.5 w-6 bg-white" />
+            <span className="absolute top-[7px] left-0 h-0.5 w-6 bg-white" />
+            <span className="absolute top-3.5 left-0 h-0.5 w-6 bg-white" />
           </span>
         </button>
       ) : null}
@@ -113,7 +113,7 @@ export function Sidebar() {
         onMouseLeave={mobile ? undefined : hide}
       >
         <div
-          className={`absolute top-4 bottom-4 left-0 flex w-60 flex-col rounded-r-3xl border border-white/20 bg-black/45 px-5 py-6 shadow-2xl backdrop-blur-xl transition-transform duration-500 ${mobile ? "pointer-events-auto" : ""}`}
+          className={`absolute top-4 bottom-4 left-0 flex flex-col rounded-r-3xl border border-white/20 bg-black/45 px-5 py-6 shadow-2xl backdrop-blur-xl transition-transform duration-500 ${mobile ? "pointer-events-auto w-72" : "w-60"}`}
           style={{
             transform: mobile
               ? open
@@ -125,14 +125,22 @@ export function Sidebar() {
             transitionTimingFunction: "cubic-bezier(0.32, 0.72, 0, 1)",
           }}
         >
-          <Text size="xs" tt="uppercase" c="gray.4" fw={500} style={{ letterSpacing: "0.16em" }}>
+          <Text size={mobile ? "sm" : "xs"} tt="uppercase" c="gray.4" fw={500} style={{ letterSpacing: "0.16em" }}>
             Profile
           </Text>
-          <Stack gap={2} mt="lg">
+          <Stack gap={mobile ? 4 : 2} mt="lg">
             {sideNav.map((item) => (
               <div key={item.id}>
-                <UnstyledButton onClick={() => go(item.id)} className="block w-full rounded-lg px-2 py-1.5 text-left">
-                  <Text size="sm" fw={activeId === item.id ? 600 : 400} c={activeId === item.id ? "white" : "gray.4"}>
+                <UnstyledButton
+                  onClick={() => go(item.id)}
+                  className="block w-full rounded-lg px-2 py-1.5 text-left"
+                  style={mobile ? { paddingTop: 10, paddingBottom: 10 } : undefined}
+                >
+                  <Text
+                    size={mobile ? "md" : "sm"}
+                    fw={activeId === item.id ? 600 : 400}
+                    c={activeId === item.id ? "white" : "gray.4"}
+                  >
                     {item.label}
                   </Text>
                 </UnstyledButton>
@@ -143,9 +151,10 @@ export function Sidebar() {
                         key={child.id}
                         onClick={() => go(child.id)}
                         className="block w-full rounded-lg px-2 py-1 text-left"
+                        style={mobile ? { paddingTop: 8, paddingBottom: 8 } : undefined}
                       >
                         <Text
-                          size="xs"
+                          size={mobile ? "sm" : "xs"}
                           fw={activeId === child.id ? 600 : 400}
                           c={activeId === child.id ? "white" : "gray.5"}
                         >

@@ -19,7 +19,7 @@ export function Chapter({ id, kicker, title, detail, children }: ChapterProps) {
   const opacity = Math.max(0, 1 - Math.abs(index + blend - stopIndex) / 0.85)
 
   return (
-    <section data-stop={id} className="pointer-events-none h-[160vh]">
+    <section data-stop={id} className="pointer-events-none h-[200vh]">
       <div className="sticky top-0 flex h-dvh items-end px-4 pb-[10vh] md:h-screen md:px-5 md:pr-[8vw] md:pb-[12vh] md:pl-[17rem]">
         <Stack gap={4} className="chapter-copy relative min-w-0 max-w-[760px] md:gap-1.5" style={{ opacity }}>
           <div
