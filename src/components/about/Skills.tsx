@@ -11,7 +11,7 @@ export function Skills() {
       <ul className="pointer-events-auto mt-1 max-h-[26vh] list-none space-y-2 overflow-y-auto pr-2 md:mt-2 md:max-h-[34vh] md:space-y-3">
         {skillGroups.map((group) => (
           <li key={group.title}>
-            <Text size="xs" c="white" fw={600} tt="uppercase" style={{ letterSpacing: "0.08em" }}>
+            <Text size="sm" c="white" fw={700} tt="uppercase" style={{ letterSpacing: "0.06em" }}>
               {group.title}
             </Text>
             <div className="mt-1 flex flex-wrap gap-1.5">
