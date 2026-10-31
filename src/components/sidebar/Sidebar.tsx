@@ -17,7 +17,7 @@ const sideNav: NavItem[] = [
     label: "About me",
     children: [
       { id: "skills", label: "Tech stacks" },
-      { id: "utm", label: "University" },
+      { id: "utm", label: "Education" },
       { id: "jk-land", label: "JK Land" },
       { id: "nus", label: "NUS" },
       { id: "esri", label: "Esri Singapore" },

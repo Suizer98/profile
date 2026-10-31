@@ -15,8 +15,8 @@ export const cameraStops: CameraStop[] = [
   {
     id: "home",
     label: "Home",
-    kicker: "Tey Sui Zer",
-    title: "From orbit",
+    kicker: "From orbit",
+    title: "Tey Sui Zer",
     detail: "Scroll to come down to Earth and meet me",
     longitude: 103.8,
     latitude: -6,
