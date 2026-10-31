@@ -32,7 +32,7 @@ const holdStart = 0.55
 const skillsHold = 0.62
 const earthRadius = 6371000
 
-const workplaceIds = new Set(["utm", "jk-land", "nus", "esri"])
+const workplaceIds = new Set(["utm", "geostars", "jk-land", "nus", "esri"])
 
 function holdEase(amount: number) {
   if (amount <= holdStart) {

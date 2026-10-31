@@ -62,6 +62,18 @@ export const cameraStops: CameraStop[] = [
     heading: 0,
   },
   {
+    id: "geostars",
+    label: "Competition",
+    kicker: "Education",
+    title: "Competition achievement",
+    detail: "Grab GeoStars 2022 · 4th place",
+    longitude: 103.635561,
+    latitude: 1.552529,
+    altitude: 560,
+    tilt: 50,
+    heading: 0,
+  },
+  {
     id: "horizon",
     label: "Work",
     kicker: "Work",

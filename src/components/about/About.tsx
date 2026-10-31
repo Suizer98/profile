@@ -2,12 +2,12 @@ import { Text } from "@mantine/core"
 
 import { Chapter } from "../chapter/Chapter.tsx"
 import { stopById } from "../globe/stops.ts"
+import { Education } from "./Education.tsx"
 import { Experiences } from "./Experiences.tsx"
 import { Skills } from "./Skills.tsx"
 
 export function About() {
   const about = stopById("about")
-  const education = stopById("utm")
   const horizon = stopById("horizon")
   return (
     <>
@@ -26,12 +26,7 @@ export function About() {
         </div>
       </Chapter>
       <Skills />
-      <Chapter
-        id={education.id}
-        kicker={education.kicker}
-        title={education.title}
-        detail={education.detail}
-      />
+      <Education />
       <Chapter id={horizon.id} kicker={horizon.kicker} title={horizon.title} detail={horizon.detail} />
       <Experiences />
     </>
