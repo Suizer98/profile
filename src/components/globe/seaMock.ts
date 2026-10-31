@@ -3,8 +3,8 @@ import type SceneView from "@arcgis/core/views/SceneView"
 
 import { seaMockId, useLayerStore } from "../../store/useLayerStore.ts"
 import { useStoryStore } from "../../store/useStoryStore.ts"
-import oceanMaskData from "./oceanMask.json"
-import seaFlowData from "./seaFlow.json"
+import oceanMaskData from "./data/oceanMask.json"
+import seaFlowData from "./data/seaFlow.json"
 import { cameraStops } from "./stops.ts"
 
 const aboutIndex = cameraStops.findIndex((stop) => stop.id === "about")
