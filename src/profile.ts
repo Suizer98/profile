@@ -212,7 +212,7 @@ export const profile: Profile = {
       detail: "Studied Geomatics Engineering at the Faculty of Built Environment and Surveying, Johor Bahru. 2018 — 2022",
       orbit: true,
       aliases: ["University"],
-      camera: { longitude: 103.635561, latitude: 1.552529, altitude: 560, tilt: 50, heading: 0 },
+      camera: { longitude: 103.637657, latitude: 1.553217, altitude: 560, tilt: 50, heading: 0 },
       notes: ["Grade: Dean's List & First Class"],
     },
     {
@@ -224,7 +224,7 @@ export const profile: Profile = {
       title: "Competition achievement",
       detail: "Grab GeoStars 2022 · 4th place",
       orbit: true,
-      camera: { longitude: 103.635561, latitude: 1.552529, altitude: 560, tilt: 50, heading: 0 },
+      camera: { longitude: 103.637657, latitude: 1.553217, altitude: 560, tilt: 50, heading: 0 },
       notes: [
         "A web GIS project on EV charging stations and economic areas, held at UTM for the Grab GeoStars Program 2022. Grab is a Southeast Asian app for transport and food delivery.",
       ],
