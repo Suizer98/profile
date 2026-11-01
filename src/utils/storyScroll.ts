@@ -53,7 +53,7 @@ function scrollChapterText(delta: number) {
 }
 
 function eventInSidebar(event: Event) {
-  return event.target instanceof Element && Boolean(event.target.closest("nav"))
+  return event.target instanceof Element && Boolean(event.target.closest("nav, [data-chat]"))
 }
 
 function onWheel(event: WheelEvent) {

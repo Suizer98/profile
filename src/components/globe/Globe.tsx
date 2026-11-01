@@ -7,7 +7,7 @@ import SceneView from "@arcgis/core/views/SceneView"
 import { Text } from "@mantine/core"
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react"
 
-import { useStoryStore } from "../../store/useStoryStore.ts"
+import { useStoryStore, type FreeCamera } from "../../store/useStoryStore.ts"
 import { atWorkplace, holdingAtWorkplace, orbitWorkplace, sampleCamera } from "./cameraPath.ts"
 import { preloadImagery, stopPreload } from "./preloadTiles.ts"
 import { createSeaMock } from "./seaMock.ts"
@@ -31,13 +31,31 @@ export function Globe() {
   const viewRef = useRef<SceneView | null>(null)
   const headingOffset = useRef(0)
   const orbitIndex = useRef(-1)
-  const dragStart = useRef<{ x: number; heading: number } | null>(null)
+  const lookCamera = useRef<FreeCamera | null>(null)
+  const dragStart = useRef<{ x: number; y: number; heading: number; tilt: number; free: boolean } | null>(null)
   const ready = useStoryStore((state) => state.ready)
-  const canLook = useStoryStore((state) => atWorkplace(state.index))
+  const canLook = useStoryStore((state) => Boolean(state.freeCamera) || atWorkplace(state.index))
   const [loadError, setLoadError] = useState("")
   const [dragging, setDragging] = useState(false)
 
+  function showCamera(view: SceneView, camera: { longitude: number; latitude: number; altitude: number; heading: number; tilt: number }) {
+    view.camera = new Camera({
+      position: {
+        longitude: camera.longitude,
+        latitude: camera.latitude,
+        z: camera.altitude,
+      },
+      heading: camera.heading,
+      tilt: camera.tilt,
+    })
+  }
+
   function applyCamera(view: SceneView) {
+    const free = lookCamera.current ?? useStoryStore.getState().freeCamera
+    if (free) {
+      showCamera(view, free)
+      return
+    }
     const { index, blend } = useStoryStore.getState()
     if (index !== orbitIndex.current) {
       headingOffset.current = 0
@@ -47,23 +65,33 @@ export function Globe() {
     const sampled = atWorkplace(index) && parked
       ? orbitWorkplace(index, headingOffset.current)
       : sampleCamera(index, blend)
-    view.camera = new Camera({
-      position: {
-        longitude: sampled.longitude,
-        latitude: sampled.latitude,
-        z: sampled.altitude,
-      },
-      heading: sampled.heading,
-      tilt: sampled.tilt,
-    })
+    showCamera(view, sampled)
   }
 
   function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!canLook || !viewRef.current || event.button > 2) {
+    const { freeCamera, index } = useStoryStore.getState()
+    if ((!freeCamera && !atWorkplace(index)) || !viewRef.current || event.button > 2) {
       return
     }
     event.preventDefault()
-    dragStart.current = { x: event.clientX, heading: headingOffset.current }
+    if (freeCamera) {
+      lookCamera.current = freeCamera
+      dragStart.current = {
+        x: event.clientX,
+        y: event.clientY,
+        heading: freeCamera.heading,
+        tilt: freeCamera.tilt,
+        free: true,
+      }
+    } else {
+      dragStart.current = {
+        x: event.clientX,
+        y: event.clientY,
+        heading: headingOffset.current,
+        tilt: 0,
+        free: false,
+      }
+    }
     setDragging(true)
     event.currentTarget.setPointerCapture(event.pointerId)
   }
@@ -81,14 +109,26 @@ export function Globe() {
   }
 
   function onPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!dragStart.current || !viewRef.current) {
+    const drag = dragStart.current
+    if (!drag || !viewRef.current) {
       return
     }
-    headingOffset.current = dragStart.current.heading + (event.clientX - dragStart.current.x) * 0.35
+    if (drag.free && lookCamera.current) {
+      const tilt = Math.min(80, Math.max(0, drag.tilt + (event.clientY - drag.y) * 0.15))
+      const heading = drag.heading + (event.clientX - drag.x) * 0.35
+      lookCamera.current = { ...lookCamera.current, heading, tilt }
+      applyCamera(viewRef.current)
+      return
+    }
+    headingOffset.current = drag.heading + (event.clientX - drag.x) * 0.35
     applyCamera(viewRef.current)
   }
 
   function onPointerUp() {
+    if (lookCamera.current) {
+      useStoryStore.getState().setFreeCamera(lookCamera.current)
+      lookCamera.current = null
+    }
     dragStart.current = null
     setDragging(false)
   }
@@ -182,8 +222,15 @@ export function Globe() {
       if (!viewReady) {
         return
       }
-      if (state.index !== previous.index || state.blend !== previous.blend) {
+      const storyMoved = state.index !== previous.index || state.blend !== previous.blend
+      const cameraMoved = storyMoved || state.freeCamera !== previous.freeCamera
+      if (!state.freeCamera) {
+        lookCamera.current = null
+      }
+      if (cameraMoved) {
         applyCamera(view)
+      }
+      if (storyMoved || Boolean(state.freeCamera) !== Boolean(previous.freeCamera)) {
         syncSatelliteVisibility(satelliteLayer)
         satellites.sync()
         sea?.sync()

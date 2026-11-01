@@ -7,6 +7,7 @@ import { Contact } from "./components/contact/Contact.tsx"
 import { Globe } from "./components/globe/Globe.tsx"
 import { Home } from "./components/home/Home.tsx"
 import { Projects } from "./components/projects/Projects.tsx"
+import { Chat } from "./components/chat/Chat.tsx"
 import { Sidebar } from "./components/sidebar/Sidebar.tsx"
 import { bindStoryScroll } from "./utils/storyScroll.ts"
 
@@ -32,6 +33,7 @@ function App() {
         <Contact />
       </main>
       <Sidebar />
+      <Chat />
     </>
   )
 }
