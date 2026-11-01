@@ -68,12 +68,12 @@ export function Sidebar() {
           aria-label="Open menu"
           aria-expanded={false}
           onClick={() => setOpen(true)}
-          className="fixed top-4 left-4 z-40 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/40 bg-white/20 shadow-lg backdrop-blur-xl"
+          className="fixed top-4 left-4 z-40 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/40 bg-white/20 shadow-lg backdrop-blur-xl"
         >
-          <span className="relative block h-4 w-6">
-            <span className="absolute top-0 left-0 h-0.5 w-6 bg-white" />
-            <span className="absolute top-[7px] left-0 h-0.5 w-6 bg-white" />
-            <span className="absolute top-3.5 left-0 h-0.5 w-6 bg-white" />
+          <span className="relative block h-3.5 w-5">
+            <span className="absolute top-0 left-0 h-0.5 w-5 bg-white" />
+            <span className="absolute top-1.5 left-0 h-0.5 w-5 bg-white" />
+            <span className="absolute top-3 left-0 h-0.5 w-5 bg-white" />
           </span>
         </button>
       ) : null}

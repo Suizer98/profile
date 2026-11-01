@@ -17,7 +17,7 @@ const copyClass = "text-left text-[0.95rem] leading-snug md:text-base md:leading
 
 function AboutBody({ chapter }: { chapter: AboutChapter }) {
   return (
-    <div className="pointer-events-auto max-h-[26vh] max-w-xl overflow-y-auto pr-2 md:max-h-[34vh]">
+    <div className="pointer-events-auto max-h-[calc(var(--app-height,100dvh)*0.26)] max-w-xl overflow-y-auto pr-2 md:max-h-[34vh]">
       {chapter.paragraphs.map((paragraph, index) => (
         <Text
           key={paragraph}
@@ -35,7 +35,7 @@ function AboutBody({ chapter }: { chapter: AboutChapter }) {
 
 function SkillsBody({ chapter }: { chapter: SkillsChapter }) {
   return (
-    <ul className="pointer-events-auto mt-1 max-h-[26vh] list-none space-y-2 overflow-y-auto pr-2 md:mt-2 md:max-h-[34vh] md:space-y-3">
+    <ul className="pointer-events-auto mt-1 max-h-[calc(var(--app-height,100dvh)*0.26)] list-none space-y-2 overflow-y-auto pr-2 md:mt-2 md:max-h-[34vh] md:space-y-3">
       {chapter.groups.map((group) => (
         <li key={group.title}>
           <Text size="sm" c="white" fw={700} tt="uppercase" style={{ letterSpacing: "0.06em" }}>
@@ -94,7 +94,7 @@ function ListBody({ chapter }: { chapter: ListChapter }) {
 
 function ProjectsBody({ chapter }: { chapter: ProjectsChapter }) {
   return (
-    <Stack gap={0} mt={2} className="pointer-events-auto max-h-[26vh] overflow-y-auto pr-2 md:mt-1 md:max-h-[38vh]">
+    <Stack gap={0} mt={2} className="pointer-events-auto max-h-[calc(var(--app-height,100dvh)*0.26)] overflow-y-auto pr-2 md:mt-1 md:max-h-[38vh]">
       {chapter.items.map((project) => (
         <a
           key={project.title}
@@ -114,7 +114,7 @@ function ProjectsBody({ chapter }: { chapter: ProjectsChapter }) {
 
 function CertsBody({ chapter }: { chapter: CertsChapter }) {
   return (
-    <ul className="pointer-events-auto mt-1 grid max-h-[calc(100dvh-9.5rem)] grid-cols-2 gap-x-3 gap-y-0.5 overflow-y-auto pr-1 md:mt-2 md:max-h-[38vh] md:gap-x-6 md:pr-2">
+    <ul className="pointer-events-auto mt-1 grid max-h-[calc(var(--app-height,100dvh)-9.5rem)] grid-cols-2 gap-x-3 gap-y-0.5 overflow-y-auto pr-1 md:mt-2 md:max-h-[38vh] md:gap-x-6 md:pr-2">
       {chapter.items.map((certification) => (
         <li key={certification.name}>
           <a

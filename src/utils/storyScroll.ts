@@ -1,4 +1,5 @@
 import { useStoryStore } from "../store/useStoryStore.ts"
+import { pageHeldForKeyboard } from "./appViewport.ts"
 
 const flickMinSpeed = 0.12
 const flickMaxSpeed = 1.6
@@ -216,7 +217,14 @@ export function bindStoryScroll() {
 
   syncScroll()
   window.addEventListener("scroll", syncScroll, { passive: true })
-  window.addEventListener("resize", syncScroll)
+  function onResize() {
+    if (pageHeldForKeyboard()) {
+      return
+    }
+    syncScroll()
+  }
+
+  window.addEventListener("resize", onResize)
   window.addEventListener("wheel", onWheel, { passive: false, capture: true })
   document.addEventListener("touchstart", onTouchStart, { passive: true })
   document.addEventListener("touchmove", onTouchMove, { passive: false, capture: true })
@@ -226,7 +234,7 @@ export function bindStoryScroll() {
   return () => {
     stopMomentum()
     window.removeEventListener("scroll", syncScroll)
-    window.removeEventListener("resize", syncScroll)
+    window.removeEventListener("resize", onResize)
     window.removeEventListener("wheel", onWheel, { capture: true })
     document.removeEventListener("touchstart", onTouchStart)
     document.removeEventListener("touchmove", onTouchMove, { capture: true })

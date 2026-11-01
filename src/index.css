@@ -5,6 +5,11 @@
 @source "../src";
 @source "../index.html";
 
+:root {
+  --app-height: 100dvh;
+  --keyboard-inset: 0px;
+}
+
 html,
 body,
 #root {
