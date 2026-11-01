@@ -111,7 +111,8 @@ function findStop(id: string) {
     (stop) =>
       stop.id.toLowerCase() === needle ||
       stop.label.toLowerCase() === needle ||
-      stop.title.toLowerCase() === needle,
+      stop.title.toLowerCase() === needle ||
+      stop.aliases.some((alias) => alias.toLowerCase() === needle),
   )
 }
 

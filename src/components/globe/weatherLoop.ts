@@ -1,15 +1,15 @@
 import type SceneView from "@arcgis/core/views/SceneView"
 
 import { useStoryStore } from "../../store/useStoryStore.ts"
-import { cameraStops } from "./stops.ts"
+import { sceneIndexes } from "./stops.ts"
 
-const esriIndex = cameraStops.findIndex((stop) => stop.id === "esri")
+const weatherIndexes = new Set(sceneIndexes("weather"))
 
 const rain = { type: "rainy" as const, cloudCover: 0.95, precipitation: 1 }
 const clearSky = { type: "sunny" as const, cloudCover: 0.12 }
 
 export function weatherVisibleForStory(index: number) {
-  return index === esriIndex
+  return weatherIndexes.has(index)
 }
 
 export function createWeatherLoop(view: SceneView) {

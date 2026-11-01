@@ -3,9 +3,9 @@ import type SceneView from "@arcgis/core/views/SceneView"
 
 import { shadowMockId, useLayerStore } from "../../store/useLayerStore.ts"
 import { useStoryStore } from "../../store/useStoryStore.ts"
-import { cameraStops } from "./stops.ts"
+import { sceneIndexes } from "./stops.ts"
 
-const nusIndex = cameraStops.findIndex((stop) => stop.id === "nus")
+const shadowIndexes = new Set(sceneIndexes("shadow"))
 const laneOffsetMeters = 6
 const travelSeconds = 1.05
 const lightCycleSeconds = 1.35
@@ -187,7 +187,7 @@ const roads: Road[] = [
 ]
 
 export function shadowVisibleForStory(index: number) {
-  return index === nusIndex
+  return shadowIndexes.has(index)
 }
 
 export function createShadowMock(view: SceneView, canvas: HTMLCanvasElement) {

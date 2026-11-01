@@ -5,10 +5,9 @@ import { seaMockId, useLayerStore } from "../../store/useLayerStore.ts"
 import { useStoryStore } from "../../store/useStoryStore.ts"
 import oceanMaskData from "./data/oceanMask.json"
 import seaFlowData from "./data/seaFlow.json"
-import { cameraStops } from "./stops.ts"
+import { sceneIndexes } from "./stops.ts"
 
-const aboutIndex = cameraStops.findIndex((stop) => stop.id === "about")
-const skillsIndex = cameraStops.findIndex((stop) => stop.id === "skills")
+const seaIndexes = sceneIndexes("sea")
 const particleCount = 460
 const shipCount = 6
 const hourSeconds = 1.7
@@ -54,7 +53,12 @@ const lonStep = seaFlow.lons[1] - seaFlow.lons[0]
 const latStep = seaFlow.lats[1] - seaFlow.lats[0]
 
 export function seaVisibleForStory(index: number) {
-  return index >= aboutIndex && index <= skillsIndex
+  const start = seaIndexes[0]
+  const end = seaIndexes[seaIndexes.length - 1]
+  if (start === undefined || end === undefined) {
+    return false
+  }
+  return index >= start && index <= end
 }
 
 export function createSeaMock(view: SceneView, canvas: HTMLCanvasElement) {

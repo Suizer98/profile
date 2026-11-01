@@ -1,39 +1,11 @@
 import { Stack, Text, UnstyledButton } from "@mantine/core"
 import { useEffect, useRef, useState } from "react"
 
+import { profile, sideNav } from "../../profile.ts"
 import { cameraStops } from "../globe/stops.ts"
 import { useStoryStore } from "../../store/useStoryStore.ts"
 
-type NavItem = {
-  id: string
-  label: string
-  children?: NavItem[]
-}
-
-const sideNav: NavItem[] = [
-  { id: "home", label: "Home" },
-  {
-    id: "about",
-    label: "About me",
-    children: [
-      { id: "skills", label: "Tech stacks" },
-      { id: "utm", label: "Education" },
-      { id: "geostars", label: "Competition" },
-    ],
-  },
-  {
-    id: "horizon",
-    label: "Professional Experiences",
-    children: [
-      { id: "jk-land", label: "JK Land" },
-      { id: "nus", label: "NUS" },
-      { id: "esri", label: "Esri Singapore" },
-    ],
-  },
-  { id: "projects", label: "Projects" },
-  { id: "certs", label: "Certs" },
-  { id: "contact", label: "Contact Me" },
-]
+const menu = sideNav(profile.chapters)
 
 function scrollToStop(id: string) {
   const section = document.querySelector<HTMLElement>(`[data-stop="${id}"]`)
@@ -133,10 +105,10 @@ export function Sidebar() {
           }}
         >
           <Text size={mobile ? "sm" : "xs"} tt="uppercase" c="gray.4" fw={500} style={{ letterSpacing: "0.16em" }}>
-            Profile
+            {profile.navTitle}
           </Text>
           <Stack gap={mobile ? 4 : 2} mt="lg">
-            {sideNav.map((item) => (
+            {menu.map((item) => (
               <div key={item.id}>
                 <UnstyledButton
                   onClick={() => go(item.id)}

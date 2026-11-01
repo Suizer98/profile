@@ -2,7 +2,7 @@ const defaultGroqModel = "openai/gpt-oss-120b"
 const defaultGeminiModel = "gemini-3.5-flash"
 const defaultGroqBaseUrl = "https://api.groq.com/openai/v1"
 const defaultGeminiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai"
-const maxTokens = 800
+const maxTokens = 2000
 
 type Provider = {
   name: string

@@ -3,9 +3,9 @@ import type SceneView from "@arcgis/core/views/SceneView"
 
 import { trafficMockId, useLayerStore } from "../../store/useLayerStore.ts"
 import { useStoryStore } from "../../store/useStoryStore.ts"
-import { cameraStops } from "./stops.ts"
+import { sceneIndexes } from "./stops.ts"
 
-const jkLandIndex = cameraStops.findIndex((stop) => stop.id === "jk-land")
+const trafficIndexes = new Set(sceneIndexes("traffic"))
 const laneOffsets = [7]
 const trailPixels = 120
 const particleCount = 20
@@ -129,7 +129,7 @@ const flowStops = [
 ]
 
 export function trafficVisibleForStory(index: number) {
-  return index === jkLandIndex
+  return trafficIndexes.has(index)
 }
 
 export function createTrafficMock(view: SceneView, canvas: HTMLCanvasElement) {

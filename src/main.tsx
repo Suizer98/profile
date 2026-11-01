@@ -6,7 +6,10 @@ import { createRoot } from "react-dom/client"
 
 import App from "./App.tsx"
 import "./index.css"
+import { profile } from "./profile.ts"
 import { theme } from "./theme.ts"
+
+document.title = profile.siteTitle
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

@@ -32,8 +32,6 @@ const holdStart = 0.55
 const skillsHold = 0.62
 const earthRadius = 6371000
 
-const workplaceIds = new Set(["utm", "geostars", "jk-land", "nus", "esri"])
-
 function holdEase(amount: number) {
   if (amount <= holdStart) {
     return 0
@@ -44,7 +42,7 @@ function holdEase(amount: number) {
 
 export function atWorkplace(index: number) {
   const stop = cameraStops[index]
-  return Boolean(stop && workplaceIds.has(stop.id))
+  return Boolean(stop?.orbit)
 }
 
 export function holdingAtWorkplace(index: number, blend: number) {
@@ -76,19 +74,20 @@ export function sampleCamera(index: number, blend: number): SampledCamera {
   const from: CameraStop = cameraStops[fromIndex]
   const to: CameraStop = cameraStops[toIndex]
   const travel = Math.min(Math.max(blend, 0), 1)
-  if (from.id === "skills" && fromIndex !== toIndex) {
-    return sampleUniversityApproach(from, to, travel)
+  if (from.depart === "dive" && fromIndex !== toIndex) {
+    return sampleDive(from, to, travel)
   }
   const amount = fromIndex === toIndex ? 1 : atWorkplace(fromIndex) ? holdEase(travel) : travel
   const altitude = lerpAltitude(from.altitude, to.altitude, amount)
   const tilt = lerp(from.tilt, to.tilt, amount)
   const heading = lerpAngle(from.heading, to.heading, amount)
 
-  const latitude = from.id === "home"
-    ? descentLatitude(from.latitude, to.latitude, amount)
-    : from.id === "about"
-      ? latitudeAlongGround(from, to, amount, altitude, tilt, heading)
-      : lerp(from.latitude, to.latitude, amount)
+  const latitude =
+    from.depart === "descent"
+      ? descentLatitude(from.latitude, to.latitude, amount)
+      : from.depart === "ground"
+        ? latitudeAlongGround(from, to, amount, altitude, tilt, heading)
+        : lerp(from.latitude, to.latitude, amount)
 
   return {
     longitude: lerp(from.longitude, to.longitude, amount),
@@ -130,7 +129,7 @@ function latitudeAlongGround(
   return targetLatitude - lookOffset(altitude, tilt) * Math.cos(bearing)
 }
 
-function sampleUniversityApproach(from: CameraStop, to: CameraStop, travel: number): SampledCamera {
+function sampleDive(from: CameraStop, to: CameraStop, travel: number): SampledCamera {
   if (travel <= skillsHold) {
     return {
       longitude: from.longitude,

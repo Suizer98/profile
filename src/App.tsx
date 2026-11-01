@@ -1,14 +1,9 @@
 import { useEffect } from "react"
 
-import { About } from "./components/about/About.tsx"
-import { Experiences } from "./components/about/Experiences.tsx"
-import { Certs } from "./components/certs/Certs.tsx"
-import { Contact } from "./components/contact/Contact.tsx"
-import { Globe } from "./components/globe/Globe.tsx"
-import { Home } from "./components/home/Home.tsx"
-import { Projects } from "./components/projects/Projects.tsx"
 import { Chat } from "./components/chat/Chat.tsx"
+import { Globe } from "./components/globe/Globe.tsx"
 import { Sidebar } from "./components/sidebar/Sidebar.tsx"
+import { Story } from "./components/story/Story.tsx"
 import { bindStoryScroll } from "./utils/storyScroll.ts"
 
 function App() {
@@ -25,12 +20,7 @@ function App() {
         }}
       />
       <main className="relative z-10">
-        <Home />
-        <About />
-        <Experiences />
-        <Projects />
-        <Certs />
-        <Contact />
+        <Story />
       </main>
       <Sidebar />
       <Chat />
