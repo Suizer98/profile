@@ -89,12 +89,12 @@ export function Sidebar() {
       ) : null}
       <nav
         className={`fixed top-0 left-0 z-30 h-dvh ${mobile ? "pointer-events-none w-0" : "h-screen"}`}
-        style={mobile ? undefined : { width: open ? 248 : 28 }}
+        style={mobile ? undefined : { width: open ? 300 : 28 }}
         onMouseEnter={mobile ? undefined : show}
         onMouseLeave={mobile ? undefined : hide}
       >
         <div
-          className={`absolute top-4 bottom-4 left-0 flex flex-col rounded-r-3xl border border-white/20 bg-black/45 px-5 py-6 shadow-2xl backdrop-blur-xl transition-transform duration-500 ${mobile ? "pointer-events-auto w-72" : "w-60"}`}
+          className={`absolute top-4 bottom-4 left-0 flex w-72 flex-col rounded-r-3xl border border-white/20 bg-black/45 px-5 py-6 shadow-2xl backdrop-blur-xl transition-transform duration-500 ${mobile ? "pointer-events-auto" : ""}`}
           style={{
             transform: mobile
               ? open
@@ -106,7 +106,7 @@ export function Sidebar() {
             transitionTimingFunction: "cubic-bezier(0.32, 0.72, 0, 1)",
           }}
         >
-          <Text size={mobile ? "sm" : "xs"} tt="uppercase" c="gray.4" fw={500} style={{ letterSpacing: "0.16em" }}>
+          <Text size="sm" tt="uppercase" c="gray.4" fw={500} style={{ letterSpacing: "0.16em" }}>
             {profile.navTitle}
           </Text>
           <Stack gap={mobile ? 4 : 2} mt="lg">
@@ -118,7 +118,7 @@ export function Sidebar() {
                   style={mobile ? { paddingTop: 10, paddingBottom: 10 } : undefined}
                 >
                   <Text
-                    size={mobile ? "md" : "sm"}
+                    size="md"
                     fw={activeId === item.id ? 600 : 400}
                     c={activeId === item.id ? "white" : "gray.4"}
                   >
@@ -135,7 +135,7 @@ export function Sidebar() {
                         style={mobile ? { paddingTop: 8, paddingBottom: 8 } : undefined}
                       >
                         <Text
-                          size={mobile ? "sm" : "xs"}
+                          size="sm"
                           fw={activeId === child.id ? 600 : 400}
                           c={activeId === child.id ? "white" : "gray.5"}
                         >
