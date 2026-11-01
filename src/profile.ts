@@ -300,9 +300,10 @@ export const profile: Profile = {
       label: "Projects",
       kicker: "Projects",
       title: "Personal projects",
-      detail: "Maps, web apps, and the tools around them.",
+      detail: "Self learn applications, side hustles, tools and more",
       camera: { longitude: 103.82, latitude: 1.12, altitude: 18000, tilt: 52, heading: 0 },
       items: [
+        { title: "SgStats", href: "https://github.com/Suizer98/SgStats" },
         { title: "Potato Merch AI", href: "https://github.com/Suizer98/potato-merch-ai" },
         { title: "Pydxf", href: "https://github.com/Suizer98/pydxf" },
         { title: "ArcGIS JS + AI", href: "https://github.com/Suizer98/arcgisjsai" },
