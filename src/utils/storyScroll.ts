@@ -1,3 +1,4 @@
+import { useGlobeStore } from "../store/useGlobeStore.ts"
 import { useStoryStore } from "../store/useStoryStore.ts"
 import { pageHeldForKeyboard } from "./appViewport.ts"
 
@@ -57,7 +58,17 @@ function eventInSidebar(event: Event) {
   return event.target instanceof Element && Boolean(event.target.closest("nav, [data-chat]"))
 }
 
+function exploring() {
+  return useGlobeStore.getState().camera !== null
+}
+
 function onWheel(event: WheelEvent) {
+  if (exploring()) {
+    if (!eventInSidebar(event)) {
+      event.preventDefault()
+    }
+    return
+  }
   if (event.ctrlKey || eventInSidebar(event) || Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
     return
   }
@@ -74,6 +85,9 @@ function onWheel(event: WheelEvent) {
 }
 
 function syncScroll() {
+  if (exploring()) {
+    return
+  }
   const stops = document.querySelectorAll<HTMLElement>("[data-stop]")
   if (stops.length < 2) {
     return
@@ -176,7 +190,14 @@ export function bindStoryScroll() {
     momentumFrame = requestAnimationFrame(step)
   }
 
+  let heldScroll = window.scrollY
+
   function onTouchStart(event: TouchEvent) {
+    if (exploring()) {
+      stopMomentum()
+      tracking = false
+      return
+    }
     stopMomentum()
     samples = []
     tracking = event.touches.length === 1 && !eventInSidebar(event)
@@ -189,6 +210,15 @@ export function bindStoryScroll() {
   }
 
   function onTouchMove(event: TouchEvent) {
+    if (exploring()) {
+      if (!eventInSidebar(event)) {
+        event.preventDefault()
+      }
+      if (Math.abs(window.scrollY - heldScroll) > 1) {
+        window.scrollTo(0, heldScroll)
+      }
+      return
+    }
     if (!tracking || event.touches.length !== 1) {
       tracking = false
       return
@@ -215,8 +245,25 @@ export function bindStoryScroll() {
     startFlick(flickVelocity(samples), flickScroller)
   }
 
+  function onScroll() {
+    if (exploring()) {
+      if (Math.abs(window.scrollY - heldScroll) > 1) {
+        window.scrollTo(0, heldScroll)
+      }
+      return
+    }
+    heldScroll = window.scrollY
+    syncScroll()
+  }
+
   syncScroll()
-  window.addEventListener("scroll", syncScroll, { passive: true })
+  const unsubscribeGlobe = useGlobeStore.subscribe((state, previous) => {
+    if (state.camera && !previous.camera) {
+      heldScroll = window.scrollY
+      stopMomentum()
+    }
+  })
+  window.addEventListener("scroll", onScroll, { passive: true })
   function onResize() {
     if (pageHeldForKeyboard()) {
       return
@@ -233,7 +280,8 @@ export function bindStoryScroll() {
 
   return () => {
     stopMomentum()
-    window.removeEventListener("scroll", syncScroll)
+    unsubscribeGlobe()
+    window.removeEventListener("scroll", onScroll)
     window.removeEventListener("resize", onResize)
     window.removeEventListener("wheel", onWheel, { capture: true })
     document.removeEventListener("touchstart", onTouchStart)

@@ -3,11 +3,13 @@ import { useEffect, useRef, useState } from "react"
 
 import { profile, sideNav } from "../../profile.ts"
 import { cameraStops } from "../globe/stops.ts"
+import { useGlobeStore } from "../../store/useGlobeStore.ts"
 import { useStoryStore } from "../../store/useStoryStore.ts"
 
 const menu = sideNav(profile.chapters)
 
 function scrollToStop(id: string) {
+  useGlobeStore.getState().clearCamera()
   const section = document.querySelector<HTMLElement>(`[data-stop="${id}"]`)
   if (!section) {
     return

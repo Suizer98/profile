@@ -1,7 +1,8 @@
 import { sampleCamera } from "../components/globe/cameraPath.ts"
 import { cameraStops } from "../components/globe/stops.ts"
+import { useGlobeStore, type GlobeCamera } from "../store/useGlobeStore.ts"
 import { useLayerStore } from "../store/useLayerStore.ts"
-import { useStoryStore, type FreeCamera } from "../store/useStoryStore.ts"
+import { useStoryStore } from "../store/useStoryStore.ts"
 
 export type MapActionResult = {
   ok: boolean
@@ -61,7 +62,8 @@ export const mapToolSchemas = [
           altitude: { type: "number", description: "Meters above the ground." },
           tilt: { type: "number", description: "0 looks straight down. 60 is an oblique view." },
           heading: { type: "number", description: "Degrees clockwise from north." },
-          place: { type: "string", description: "Name of the place, for the reply." },
+          place: { type: "string", description: "Short place name shown large, such as Kyoto." },
+          summary: { type: "string", description: "Exactly two sentences about the place." },
         },
         required: ["longitude", "latitude"],
       },
@@ -146,16 +148,8 @@ function asNumber(value: unknown) {
   return null
 }
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value))
-}
-
-function wrapHeading(value: number) {
-  return ((value % 360) + 360) % 360
-}
-
-function currentView(): FreeCamera {
-  const free = useStoryStore.getState().freeCamera
+function currentView(): GlobeCamera {
+  const free = useGlobeStore.getState().camera
   if (free) {
     return free
   }
@@ -179,7 +173,7 @@ export function goToSection(id: string): MapActionResult {
   if (!section) {
     return { ok: false, name: "goToSection", detail: `Section ${stop.id} is not on the page` }
   }
-  useStoryStore.getState().setFreeCamera(null)
+  useGlobeStore.getState().clearCamera()
   window.scrollTo({ top: section.offsetTop, behavior: "smooth" })
   return { ok: true, name: "goToSection", detail: `Moved to ${stop.label}` }
 }
@@ -197,20 +191,21 @@ export function setLayerVisible(id: string, visible: boolean): MapActionResult {
   }
 }
 
-export function flyTo(longitude: number, latitude: number, altitude: number, tilt: number, heading: number, place: string): MapActionResult {
-  const camera: FreeCamera = {
-    longitude: clamp(longitude, -180, 180),
-    latitude: clamp(latitude, -85, 85),
-    altitude: clamp(altitude, 150, 20000000),
-    tilt: clamp(tilt, 0, 80),
-    heading: wrapHeading(heading),
+export function flyTo(longitude: number, latitude: number, altitude: number, tilt: number, heading: number, place: string, summary: string): MapActionResult {
+  const camera: GlobeCamera = {
+    longitude,
+    latitude,
+    altitude,
+    tilt,
+    heading,
   }
-  useStoryStore.getState().setFreeCamera(camera)
   const label = place.trim() || `${camera.latitude.toFixed(2)}, ${camera.longitude.toFixed(2)}`
+  useGlobeStore.getState().setCamera(camera)
+  useGlobeStore.getState().setVisit({ title: label, summary: summary.trim() })
   return {
     ok: true,
     name: "flyTo",
-    detail: `Looking at ${label}. The visitor can drag to rotate the view.`,
+    detail: `Looking at ${label}. Drag to rotate, right-drag or a second finger to pan, scroll or pinch to zoom. The chapter stays put.`,
   }
 }
 
@@ -219,12 +214,12 @@ export function rotateView(heading: number | null, tilt: number | null): MapActi
     return { ok: false, name: "rotateView", detail: "Pass heading, tilt, or both" }
   }
   const base = currentView()
-  const camera: FreeCamera = {
+  const camera: GlobeCamera = {
     ...base,
-    heading: heading === null ? base.heading : wrapHeading(heading),
-    tilt: tilt === null ? base.tilt : clamp(tilt, 0, 80),
+    heading: heading === null ? base.heading : heading,
+    tilt: tilt === null ? base.tilt : tilt,
   }
-  useStoryStore.getState().setFreeCamera(camera)
+  useGlobeStore.getState().setCamera(camera)
   return {
     ok: true,
     name: "rotateView",
@@ -233,7 +228,7 @@ export function rotateView(heading: number | null, tilt: number | null): MapActi
 }
 
 export function releaseView(): MapActionResult {
-  useStoryStore.getState().setFreeCamera(null)
+  useGlobeStore.getState().clearCamera()
   return { ok: true, name: "releaseView", detail: "Returned to the current chapter" }
 }
 
@@ -246,14 +241,14 @@ export function getMapState(): MapActionResult {
     title: layer.title,
     visible: layer.visible,
   }))
-  const free = useStoryStore.getState().freeCamera
+  const camera = useGlobeStore.getState().camera
   return {
     ok: true,
     name: "getMapState",
     detail: JSON.stringify({
       section: stop.id,
       label: stop.label,
-      freeCamera: free,
+      camera,
       layers,
     }),
   }
@@ -276,6 +271,7 @@ export function runMapAction(name: string, args: Record<string, unknown>): MapAc
       asNumber(args.tilt) ?? 55,
       asNumber(args.heading) ?? 0,
       String(args.place ?? ""),
+      String(args.summary ?? ""),
     )
   }
   if (name === "rotateView") {

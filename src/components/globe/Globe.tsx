@@ -2,12 +2,13 @@ import Basemap from "@arcgis/core/Basemap"
 import Camera from "@arcgis/core/Camera"
 import esriConfig from "@arcgis/core/config"
 import TileLayer from "@arcgis/core/layers/TileLayer"
-import Map from "@arcgis/core/Map"
+import EsriMap from "@arcgis/core/Map"
 import SceneView from "@arcgis/core/views/SceneView"
 import { Text } from "@mantine/core"
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react"
 
-import { useStoryStore, type FreeCamera } from "../../store/useStoryStore.ts"
+import { useGlobeStore } from "../../store/useGlobeStore.ts"
+import { useStoryStore } from "../../store/useStoryStore.ts"
 import { atWorkplace, holdingAtWorkplace, orbitWorkplace, sampleCamera } from "./cameraPath.ts"
 import { preloadImagery, stopPreload } from "./preloadTiles.ts"
 import { createSeaMock } from "./seaMock.ts"
@@ -31,10 +32,13 @@ export function Globe() {
   const viewRef = useRef<SceneView | null>(null)
   const headingOffset = useRef(0)
   const orbitIndex = useRef(-1)
-  const lookCamera = useRef<FreeCamera | null>(null)
-  const dragStart = useRef<{ x: number; y: number; heading: number; tilt: number; free: boolean } | null>(null)
+  const pointers = useRef(new Map<number, { x: number; y: number }>())
+  const pinch = useRef<{ distance: number; x: number; y: number } | null>(null)
+  const dragStart = useRef<{ x: number; y: number; heading: number; tilt: number; mode: "rotate" | "pan" | "orbit" } | null>(null)
   const ready = useStoryStore((state) => state.ready)
-  const canLook = useStoryStore((state) => Boolean(state.freeCamera) || atWorkplace(state.index))
+  const storyIndex = useStoryStore((state) => state.index)
+  const globeCamera = useGlobeStore((state) => state.camera)
+  const canLook = Boolean(globeCamera) || atWorkplace(storyIndex)
   const [loadError, setLoadError] = useState("")
   const [dragging, setDragging] = useState(false)
 
@@ -50,10 +54,23 @@ export function Globe() {
     })
   }
 
+  function pointerSpread() {
+    const points = [...pointers.current.values()]
+    if (points.length < 2) {
+      return null
+    }
+    const [first, second] = points
+    return {
+      distance: Math.hypot(first.x - second.x, first.y - second.y),
+      x: (first.x + second.x) / 2,
+      y: (first.y + second.y) / 2,
+    }
+  }
+
   function applyCamera(view: SceneView) {
-    const free = lookCamera.current ?? useStoryStore.getState().freeCamera
-    if (free) {
-      showCamera(view, free)
+    const camera = useGlobeStore.getState().camera
+    if (camera) {
+      showCamera(view, camera)
       return
     }
     const { index, blend } = useStoryStore.getState()
@@ -69,28 +86,22 @@ export function Globe() {
   }
 
   function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    const { freeCamera, index } = useStoryStore.getState()
-    if ((!freeCamera && !atWorkplace(index)) || !viewRef.current || event.button > 2) {
+    const camera = useGlobeStore.getState().camera
+    if (camera) {
       return
     }
+    const { index } = useStoryStore.getState()
+    if (!atWorkplace(index) || !viewRef.current || event.button > 2) {
+      return
+    }
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
     event.preventDefault()
-    if (freeCamera) {
-      lookCamera.current = freeCamera
-      dragStart.current = {
-        x: event.clientX,
-        y: event.clientY,
-        heading: freeCamera.heading,
-        tilt: freeCamera.tilt,
-        free: true,
-      }
-    } else {
-      dragStart.current = {
-        x: event.clientX,
-        y: event.clientY,
-        heading: headingOffset.current,
-        tilt: 0,
-        free: false,
-      }
+    dragStart.current = {
+      x: event.clientX,
+      y: event.clientY,
+      heading: headingOffset.current,
+      tilt: 0,
+      mode: "orbit",
     }
     setDragging(true)
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -109,29 +120,151 @@ export function Globe() {
   }
 
   function onPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
+    if (useGlobeStore.getState().camera || !pointers.current.has(event.pointerId)) {
+      return
+    }
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    const camera = useGlobeStore.getState().camera
+    const spread = pointerSpread()
+    if (camera && spread && pinch.current) {
+      useGlobeStore.getState().panBy(spread.x - pinch.current.x, spread.y - pinch.current.y)
+      useGlobeStore.getState().zoomBy(pinch.current.distance - spread.distance)
+      pinch.current = spread
+      return
+    }
     const drag = dragStart.current
     if (!drag || !viewRef.current) {
       return
     }
-    if (drag.free && lookCamera.current) {
+    if (drag.mode === "rotate" && camera) {
       const tilt = Math.min(80, Math.max(0, drag.tilt + (event.clientY - drag.y) * 0.15))
       const heading = drag.heading + (event.clientX - drag.x) * 0.35
-      lookCamera.current = { ...lookCamera.current, heading, tilt }
-      applyCamera(viewRef.current)
+      useGlobeStore.getState().setCamera({ ...camera, heading, tilt })
+      return
+    }
+    if (drag.mode === "pan" && camera) {
+      useGlobeStore.getState().panBy(event.clientX - drag.x, event.clientY - drag.y)
+      dragStart.current = { ...drag, x: event.clientX, y: event.clientY }
       return
     }
     headingOffset.current = drag.heading + (event.clientX - drag.x) * 0.35
     applyCamera(viewRef.current)
   }
 
-  function onPointerUp() {
-    if (lookCamera.current) {
-      useStoryStore.getState().setFreeCamera(lookCamera.current)
-      lookCamera.current = null
+  function onPointerUp(event: ReactPointerEvent<HTMLDivElement>) {
+    if (useGlobeStore.getState().camera) {
+      return
+    }
+    pointers.current.delete(event.pointerId)
+    pinch.current = pointerSpread()
+    if (pointers.current.size > 0) {
+      return
     }
     dragStart.current = null
     setDragging(false)
   }
+
+  useEffect(() => {
+    const exploring = globeCamera !== null
+    document.documentElement.style.touchAction = exploring ? "none" : ""
+    return () => {
+      document.documentElement.style.touchAction = ""
+    }
+  }, [globeCamera !== null])
+
+  useEffect(() => {
+    function blocked(target: EventTarget | null) {
+      return target instanceof Element && Boolean(target.closest("nav, [data-chat], a, button, input, textarea"))
+    }
+
+    function spread() {
+      const points = [...pointers.current.values()]
+      if (points.length < 2) {
+        return null
+      }
+      const [first, second] = points
+      return {
+        distance: Math.hypot(first.x - second.x, first.y - second.y),
+        x: (first.x + second.x) / 2,
+        y: (first.y + second.y) / 2,
+      }
+    }
+
+    function onPointerDown(event: PointerEvent) {
+      const camera = useGlobeStore.getState().camera
+      if (!camera || blocked(event.target) || event.button > 2) {
+        return
+      }
+      pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
+      const fingers = spread()
+      pinch.current = fingers
+      dragStart.current = {
+        x: event.clientX,
+        y: event.clientY,
+        heading: camera.heading,
+        tilt: camera.tilt,
+        mode: event.button === 2 || event.shiftKey || event.altKey ? "rotate" : "pan",
+      }
+      setDragging(true)
+      event.preventDefault()
+    }
+
+    function onPointerMove(event: PointerEvent) {
+      if (!pointers.current.has(event.pointerId)) {
+        return
+      }
+      pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
+      const camera = useGlobeStore.getState().camera
+      if (!camera) {
+        return
+      }
+      const fingers = spread()
+      if (fingers && pinch.current) {
+        useGlobeStore.getState().panBy(fingers.x - pinch.current.x, fingers.y - pinch.current.y)
+        useGlobeStore.getState().zoomBy((pinch.current.distance - fingers.distance) * 2)
+        pinch.current = fingers
+        event.preventDefault()
+        return
+      }
+      const drag = dragStart.current
+      if (!drag) {
+        return
+      }
+      if (drag.mode === "rotate") {
+        const tilt = Math.min(80, Math.max(0, drag.tilt + (event.clientY - drag.y) * 0.25))
+        const heading = drag.heading - (event.clientX - drag.x) * 0.4
+        useGlobeStore.getState().setCamera({ ...camera, heading, tilt })
+      } else {
+        useGlobeStore.getState().panBy(event.clientX - drag.x, event.clientY - drag.y)
+        dragStart.current = { ...drag, x: event.clientX, y: event.clientY }
+      }
+      event.preventDefault()
+    }
+
+    function onPointerUp(event: PointerEvent) {
+      if (!pointers.current.has(event.pointerId)) {
+        return
+      }
+      pointers.current.delete(event.pointerId)
+      pinch.current = spread()
+      if (pointers.current.size > 0) {
+        return
+      }
+      dragStart.current = null
+      setDragging(false)
+    }
+
+    window.addEventListener("pointerdown", onPointerDown, { capture: true })
+    window.addEventListener("pointermove", onPointerMove, { capture: true })
+    window.addEventListener("pointerup", onPointerUp, { capture: true })
+    window.addEventListener("pointercancel", onPointerUp, { capture: true })
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown, { capture: true })
+      window.removeEventListener("pointermove", onPointerMove, { capture: true })
+      window.removeEventListener("pointerup", onPointerUp, { capture: true })
+      window.removeEventListener("pointercancel", onPointerUp, { capture: true })
+    }
+  }, [])
 
   useEffect(() => {
     const container = containerRef.current
@@ -143,7 +276,7 @@ export function Globe() {
     const home = cameraStops[0]
 
     const satelliteLayer = createSatelliteMockLayer()
-    const map = new Map({
+    const map = new EsriMap({
       basemap: new Basemap({
         baseLayers: [
           new TileLayer({
@@ -218,30 +351,59 @@ export function Globe() {
       shadow?.applyVisible(shadowLayer?.visible ?? false)
     })
 
+    function syncScenes() {
+      syncSatelliteVisibility(satelliteLayer)
+      satellites.sync()
+      sea?.sync()
+      traffic?.sync()
+      shadow?.sync()
+      weather.sync()
+    }
+
+    function onWheel(event: WheelEvent) {
+      if (!useGlobeStore.getState().camera) {
+        return
+      }
+      if (event.target instanceof Element && event.target.closest("nav, [data-chat]")) {
+        return
+      }
+      let delta = event.deltaY
+      if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) {
+        delta *= 16
+      }
+      if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+        delta *= window.innerHeight
+      }
+      useGlobeStore.getState().zoomBy(delta)
+    }
+
     const unsubscribe = useStoryStore.subscribe((state, previous) => {
       if (!viewReady) {
         return
       }
       const storyMoved = state.index !== previous.index || state.blend !== previous.blend
-      const cameraMoved = storyMoved || state.freeCamera !== previous.freeCamera
-      if (!state.freeCamera) {
-        lookCamera.current = null
-      }
-      if (cameraMoved) {
+      if (storyMoved && !useGlobeStore.getState().camera) {
         applyCamera(view)
       }
-      if (storyMoved || Boolean(state.freeCamera) !== Boolean(previous.freeCamera)) {
-        syncSatelliteVisibility(satelliteLayer)
-        satellites.sync()
-        sea?.sync()
-        traffic?.sync()
-        shadow?.sync()
-        weather.sync()
+      if (storyMoved) {
+        syncScenes()
       }
       if (state.index !== previous.index) {
         preloadFrom(state.index)
       }
     })
+
+    const unsubscribeGlobe = useGlobeStore.subscribe((state, previous) => {
+      if (!viewReady || state.camera === previous.camera) {
+        return
+      }
+      applyCamera(view)
+      if (Boolean(state.camera) !== Boolean(previous.camera)) {
+        syncScenes()
+      }
+    })
+
+    window.addEventListener("wheel", onWheel, { passive: false })
 
     view
       .when(() => {
@@ -271,6 +433,8 @@ export function Globe() {
       weather.remove()
       unsubscribeLayers()
       unsubscribe()
+      unsubscribeGlobe()
+      window.removeEventListener("wheel", onWheel)
       view.destroy()
     }
   }, [])
@@ -283,7 +447,7 @@ export function Globe() {
       <canvas ref={shadowCanvasRef} data-layer="shadow" className="pointer-events-none fixed inset-0 z-[3]" />
       <div
         aria-label={canLook ? "Drag to look around" : undefined}
-        className={`fixed inset-0 z-[8] ${canLook ? "" : "pointer-events-none"}`}
+        className={`fixed inset-0 touch-none ${globeCamera ? "z-[24]" : "z-[8]"} ${canLook ? "" : "pointer-events-none"}`}
         style={{ cursor: canLook ? (dragging ? "grabbing" : "grab") : "auto" }}
         onPointerDown={onPointerDown}
         onMouseDown={onMouseDown}
