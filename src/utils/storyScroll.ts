@@ -7,10 +7,10 @@ const flickMaxSpeed = 1.6
 const flickDecay = 0.9985
 const flickStopSpeed = 0.015
 const flickSampleMs = 100
-const phoneFlickMs = 280
+const phoneFlickMs = 340
 const phoneFlickGapMs = 80
-const phoneSettleMs = 1100
-const phoneSettleSlack = 160
+const phoneSettleMs = 800
+const phoneSettleSlack = 110
 const wheelIdleMs = 200
 
 let wheelOnInner = false
@@ -49,6 +49,16 @@ function chapterTextScroller() {
   return chapterBox(currentStop())
 }
 
+function chapterIsParked(stop: HTMLElement | null) {
+  if (!stop) {
+    return false
+  }
+  const viewport = window.visualViewport?.height ?? window.innerHeight
+  const into = window.scrollY - stop.offsetTop
+  const stuck = stop.offsetHeight - viewport
+  return into <= Math.max(0, stuck) - 8
+}
+
 function scrollRoom(box: HTMLElement) {
   return box.scrollHeight - box.clientHeight
 }
@@ -72,8 +82,9 @@ function scrollInner(box: HTMLElement, delta: number) {
 function scrollPageOrInner(delta: number) {
   let rest = delta
   while (Math.abs(rest) > 0.5) {
+    const stop = currentStop()
     const box = chapterTextScroller()
-    if (box && canScroll(box, rest)) {
+    if (box && chapterIsParked(stop) && canScroll(box, rest)) {
       scrollInner(box, rest)
       return box
     }
@@ -158,13 +169,12 @@ function onWheel(event: WheelEvent) {
   }, wheelIdleMs)
   if (wheelOnInner) {
     const box = chapterTextScroller()
-    if (box && canScroll(box, delta)) {
+    if (box && chapterIsParked(currentStop()) && canScroll(box, delta)) {
       scrollInner(box, delta)
-    } else if (!box) {
-      wheelOnInner = false
+      event.preventDefault()
+      return
     }
-    event.preventDefault()
-    return
+    wheelOnInner = false
   }
   const caught = scrollPageOrInner(delta)
   if (caught) {
@@ -352,10 +362,20 @@ export function bindStoryScroll() {
     }
     if (delta !== 0) {
       if (innerLock) {
+        const stop = currentStop()
         const box = chapterTextScroller()
-        if (box) {
+        if (box && chapterIsParked(stop) && canScroll(box, delta)) {
           scrollInner(box, delta)
           flickScroller = box
+        } else {
+          innerLock = false
+          const caught = scrollPageOrInner(delta)
+          if (caught) {
+            innerLock = true
+            flickScroller = caught
+          } else {
+            flickScroller = null
+          }
         }
       } else {
         const caught = scrollPageOrInner(delta)
