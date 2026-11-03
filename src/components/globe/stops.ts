@@ -1,4 +1,4 @@
-import { profile, type Chapter, type Scene } from "../../profile.ts"
+import { profile, type Chapter, type Scene, type Weather } from "../../profile.ts"
 
 export type CameraStop = {
   id: string
@@ -14,6 +14,7 @@ export type CameraStop = {
   orbit: boolean
   depart: "linear" | "descent" | "ground" | "dive"
   scene: Scene | null
+  weather: Weather | null
   aliases: string[]
 }
 
@@ -50,6 +51,7 @@ export const cameraStops: CameraStop[] = profile.chapters.map((chapter) => ({
   orbit: Boolean(chapter.orbit),
   depart: chapter.depart ?? "linear",
   scene: chapter.scene ?? null,
+  weather: chapter.scene === "weather" ? (chapter.weather ?? "rain") : null,
   aliases: chapter.aliases ?? [],
 }))
 

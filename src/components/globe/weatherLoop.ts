@@ -1,60 +1,62 @@
 import type SceneView from "@arcgis/core/views/SceneView"
 
+import type { Weather } from "../../profile.ts"
 import { useStoryStore } from "../../store/useStoryStore.ts"
-import { atWorkplace, holdingAtWorkplace } from "./cameraPath.ts"
-import { sceneIndexes } from "./stops.ts"
+import { cameraStops } from "./stops.ts"
 
-const weatherIndexes = new Set(sceneIndexes("weather"))
+const weatherBefore = 0.36
+const weatherAfter = 0.9
 
-const rain = { type: "rainy" as const, cloudCover: 0.95, precipitation: 1 }
 const clearSky = { type: "sunny" as const, cloudCover: 0.12 }
 
-export function weatherVisibleForStory(index: number, blend: number) {
-  if (!weatherIndexes.has(index)) {
-    return false
-  }
-  if (atWorkplace(index)) {
-    return holdingAtWorkplace(index, blend)
-  }
-  return blend < 1
+const weatherPresets = {
+  rain: { type: "rainy" as const, cloudCover: 0.95, precipitation: 1 },
+  snow: { type: "snowy" as const, cloudCover: 0.85, precipitation: 0.6 },
+  fog: { type: "foggy" as const, fogStrength: 0.4 },
+  cloudy: { type: "cloudy" as const, cloudCover: 0.75 },
+}
+
+function weatherForStory(index: number, blend: number) {
+  const position = index + blend
+  let chosen: Weather | null = null
+  cameraStops.forEach((stop, stopIndex) => {
+    if (!stop.weather) {
+      return
+    }
+    if (position >= stopIndex - weatherBefore && position < stopIndex + weatherAfter) {
+      chosen = stop.weather
+    }
+  })
+  return chosen
 }
 
 export function createWeatherLoop(view: SceneView) {
-  let raining = false
+  let active: Weather | null = null
 
   function weatherType() {
     const weather = view.environment.weather
     return weather && "type" in weather ? weather.type : ""
   }
 
-  function applyVisible(visible: boolean) {
-    const type = weatherType()
-    if (visible) {
-      if (raining && type === "rainy") {
-        return
-      }
-      raining = true
-      view.environment.weather = rain
+  function applyWeather(next: Weather | null) {
+    const preset = next ? weatherPresets[next] : clearSky
+    if (next === active && weatherType() === preset.type) {
       return
     }
-    if (!raining && type === "sunny") {
-      return
-    }
-    raining = false
-    view.environment.weather = { ...clearSky }
+    active = next
+    view.environment.weather = { ...preset }
   }
 
   function sync() {
     const { index, blend } = useStoryStore.getState()
-    applyVisible(weatherVisibleForStory(index, blend))
+    applyWeather(weatherForStory(index, blend))
   }
 
   return {
     sync,
-    applyVisible,
     remove() {
-      raining = false
-      view.environment.weather = clearSky
+      active = null
+      view.environment.weather = { ...clearSky }
     },
   }
 }

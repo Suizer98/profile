@@ -4,6 +4,7 @@
 // camera.altitude is meters. tilt 0 looks down. heading is degrees clockwise from north.
 // orbit lets visitors drag to look around. depart is how the camera leaves: descent, ground, or dive.
 // scene plays a built-in globe effect on that chapter: sea, traffic, shadow, or weather.
+// weather, used with scene "weather", is rain, snow, fog, or cloudy.
 // aliases are extra names the guide accepts. Skill icons: https://skillicons.dev
 
 export type Camera = {
@@ -18,6 +19,8 @@ export type Depart = "descent" | "ground" | "dive"
 
 export type Scene = "sea" | "traffic" | "shadow" | "weather"
 
+export type Weather = "rain" | "snow" | "fog" | "cloudy"
+
 type ChapterBase = {
   id: string
   label: string
@@ -29,6 +32,7 @@ type ChapterBase = {
   orbit?: boolean
   depart?: Depart
   scene?: Scene
+  weather?: Weather
   aliases?: string[]
 }
 
@@ -291,6 +295,7 @@ export const profile: Profile = {
       detail: "Software Engineer · 351 Braddell Road",
       orbit: true,
       scene: "weather",
+      weather: "rain",
       camera: { longitude: 103.8450433, latitude: 1.337284, altitude: 560, tilt: 50, heading: 0 },
       lines: ["ESRI certified software engineer", "MVP of Esri Singapore 2026"],
     },
