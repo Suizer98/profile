@@ -1,11 +1,20 @@
 import { useGlobeStore } from "../store/useGlobeStore.ts"
 import { useStoryStore } from "../store/useStoryStore.ts"
-import { pageHeldForKeyboard } from "./appViewport.ts"
+import { pageHeldForKeyboard, phoneLayout } from "./appViewport.ts"
 
 const flickMinSpeed = 0.12
 const flickMaxSpeed = 1.6
 const flickDecay = 0.9985
+const flickStopSpeed = 0.015
 const flickSampleMs = 100
+const phoneFlickMs = 280
+const phoneFlickGapMs = 80
+const phoneSettleMs = 1100
+const phoneSettleSlack = 160
+const wheelIdleMs = 200
+
+let wheelOnInner = false
+let wheelTimer = 0
 
 type FlickSample = {
   y: number
@@ -23,12 +32,11 @@ function currentStop() {
   return current
 }
 
-function chapterTextScroller() {
-  const stop = currentStop()
+function chapterBox(stop: HTMLElement | null) {
   if (!stop) {
     return null
   }
-  const boxes = stop.querySelectorAll<HTMLElement>(".overflow-y-auto")
+  const boxes = stop.querySelectorAll<HTMLElement>("[data-chapter-scroll]")
   for (const box of boxes) {
     if (box.scrollHeight > box.clientHeight + 2) {
       return box
@@ -37,21 +45,86 @@ function chapterTextScroller() {
   return null
 }
 
-function scrollChapterText(delta: number) {
-  if (delta === 0) {
+function chapterTextScroller() {
+  return chapterBox(currentStop())
+}
+
+function scrollRoom(box: HTMLElement) {
+  return box.scrollHeight - box.clientHeight
+}
+
+function canScroll(box: HTMLElement, delta: number) {
+  const room = scrollRoom(box)
+  if (room <= 2 || delta === 0) {
     return false
   }
-  const scroller = chapterTextScroller()
-  if (!scroller) {
-    return false
+  if (delta > 0) {
+    return box.scrollTop < room - 2
   }
-  const max = scroller.scrollHeight - scroller.clientHeight
-  const next = Math.min(max, Math.max(0, scroller.scrollTop + delta))
-  if (next === scroller.scrollTop) {
-    return false
+  return box.scrollTop > 2
+}
+
+function scrollInner(box: HTMLElement, delta: number) {
+  const room = scrollRoom(box)
+  box.scrollTop = Math.min(room, Math.max(0, box.scrollTop + delta))
+}
+
+function scrollPageOrInner(delta: number) {
+  let rest = delta
+  while (Math.abs(rest) > 0.5) {
+    const box = chapterTextScroller()
+    if (box && canScroll(box, rest)) {
+      scrollInner(box, rest)
+      return box
+    }
+    const stops = [...document.querySelectorAll<HTMLElement>("[data-stop]")]
+    const y = window.scrollY
+    let limit = Math.abs(rest)
+    if (rest > 0) {
+      for (const stop of stops) {
+        const gap = stop.offsetTop - y
+        if (gap <= 1) {
+          continue
+        }
+        const upcoming = chapterBox(stop)
+        if (upcoming && canScroll(upcoming, rest)) {
+          limit = Math.min(limit, gap)
+          break
+        }
+      }
+    } else {
+      let index = 0
+      for (let stopIndex = 0; stopIndex < stops.length; stopIndex += 1) {
+        if (stops[stopIndex].offsetTop <= y) {
+          index = stopIndex
+        }
+      }
+      const previous = chapterBox(stops[index - 1] ?? null)
+      if (previous && canScroll(previous, rest)) {
+        limit = Math.min(limit, Math.max(0, y - stops[index].offsetTop))
+      }
+    }
+    if (limit <= 0.5) {
+      if (rest >= 0) {
+        break
+      }
+      const before = window.scrollY
+      window.scrollBy(0, -1)
+      if (window.scrollY === before) {
+        break
+      }
+      rest -= window.scrollY - before
+      continue
+    }
+    const before = window.scrollY
+    window.scrollBy(0, Math.sign(rest) * limit)
+    const moved = window.scrollY - before
+    if (Math.abs(moved) < 0.5) {
+      break
+    }
+    rest -= moved
   }
-  scroller.scrollTop = next
-  return true
+  return null
 }
 
 function eventInSidebar(event: Event) {
@@ -79,9 +152,25 @@ function onWheel(event: WheelEvent) {
   if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
     delta *= window.innerHeight
   }
-  if (scrollChapterText(delta)) {
+  window.clearTimeout(wheelTimer)
+  wheelTimer = window.setTimeout(() => {
+    wheelOnInner = false
+  }, wheelIdleMs)
+  if (wheelOnInner) {
+    const box = chapterTextScroller()
+    if (box && canScroll(box, delta)) {
+      scrollInner(box, delta)
+    } else if (!box) {
+      wheelOnInner = false
+    }
     event.preventDefault()
+    return
   }
+  const caught = scrollPageOrInner(delta)
+  if (caught) {
+    wheelOnInner = true
+  }
+  event.preventDefault()
 }
 
 function syncScroll() {
@@ -117,35 +206,6 @@ function syncScroll() {
   useStoryStore.getState().setScroll(index, blend)
 }
 
-function touchScroller(event: TouchEvent) {
-  if (event.target instanceof Element) {
-    const box = event.target.closest(".overflow-y-auto")
-    if (box instanceof HTMLElement && box.scrollHeight > box.clientHeight + 2) {
-      return box
-    }
-  }
-  return chapterTextScroller()
-}
-
-function consumeScroll(delta: number, scroller: HTMLElement | null) {
-  let rest = delta
-  let active = scroller
-  if (active) {
-    const max = active.scrollHeight - active.clientHeight
-    const next = Math.min(max, Math.max(0, active.scrollTop + delta))
-    const used = next - active.scrollTop
-    active.scrollTop = next
-    rest = delta - used
-    if (rest !== 0) {
-      active = null
-    }
-  }
-  if (rest !== 0) {
-    window.scrollBy(0, rest)
-  }
-  return active
-}
-
 function flickVelocity(samples: FlickSample[]) {
   if (samples.length < 2) {
     return 0
@@ -166,33 +226,92 @@ export function bindStoryScroll() {
   let momentumFrame = 0
   let samples: FlickSample[] = []
 
+  let coasting = false
+  let settledY = window.scrollY
+  let settleUntil = 0
+
   function stopMomentum() {
     cancelAnimationFrame(momentumFrame)
+    coasting = false
   }
 
-  function startFlick(velocity: number, scroller: HTMLElement | null) {
+  function finishCoast() {
+    coasting = false
+  }
+
+  function startFlick(velocity: number, scroller: HTMLElement | null, lockInner: boolean) {
     let speed = Math.max(-flickMaxSpeed, Math.min(flickMaxSpeed, velocity))
     if (Math.abs(speed) < flickMinSpeed) {
       return
     }
-    let active = scroller
-    let previous = performance.now()
+    const started = performance.now()
+    coasting = true
+    let fedInner = lockInner
+    function move(delta: number) {
+      if (fedInner) {
+        const box = scroller ?? chapterTextScroller()
+        if (!box || !canScroll(box, delta)) {
+          finishCoast()
+          return false
+        }
+        scrollInner(box, delta)
+        return true
+      }
+      if (scrollPageOrInner(delta)) {
+        fedInner = true
+      }
+      settledY = window.scrollY
+      return true
+    }
+    if (phoneLayout()) {
+      const distance = (speed * phoneFlickMs) / 3
+      let traveled = 0
+      let previous = started
+      function step(now: number) {
+        if (now - previous > phoneFlickGapMs) {
+          finishCoast()
+          return
+        }
+        previous = now
+        const amount = Math.min(1, (now - started) / phoneFlickMs)
+        const eased = 1 - (1 - amount) ** 3
+        const target = distance * eased
+        const delta = target - traveled
+        traveled = target
+        if (delta !== 0 && !move(delta)) {
+          return
+        }
+        if (amount < 1) {
+          momentumFrame = requestAnimationFrame(step)
+          return
+        }
+        finishCoast()
+      }
+      momentumFrame = requestAnimationFrame(step)
+      return
+    }
+    let previous = started
     function step(now: number) {
       const dt = Math.min(34, now - previous)
       previous = now
       speed *= flickDecay ** dt
-      if (Math.abs(speed) < 0.015) {
+      if (Math.abs(speed) < flickStopSpeed) {
+        finishCoast()
         return
       }
-      active = consumeScroll(speed * dt, active)
+      if (!move(speed * dt)) {
+        return
+      }
       momentumFrame = requestAnimationFrame(step)
     }
     momentumFrame = requestAnimationFrame(step)
   }
 
   let heldScroll = window.scrollY
+  let innerLock = false
 
   function onTouchStart(event: TouchEvent) {
+    innerLock = false
     if (exploring()) {
       stopMomentum()
       tracking = false
@@ -205,7 +324,7 @@ export function bindStoryScroll() {
       return
     }
     touchY = event.touches[0].clientY
-    flickScroller = touchScroller(event)
+    flickScroller = chapterTextScroller()
     samples.push({ y: touchY, time: event.timeStamp })
   }
 
@@ -232,7 +351,21 @@ export function bindStoryScroll() {
       samples.shift()
     }
     if (delta !== 0) {
-      flickScroller = consumeScroll(delta, flickScroller ?? touchScroller(event))
+      if (innerLock) {
+        const box = chapterTextScroller()
+        if (box) {
+          scrollInner(box, delta)
+          flickScroller = box
+        }
+      } else {
+        const caught = scrollPageOrInner(delta)
+        if (caught) {
+          innerLock = true
+          flickScroller = caught
+        } else {
+          flickScroller = null
+        }
+      }
     }
     event.preventDefault()
   }
@@ -242,7 +375,11 @@ export function bindStoryScroll() {
       return
     }
     tracking = false
-    startFlick(flickVelocity(samples), flickScroller)
+    if (phoneLayout()) {
+      settledY = window.scrollY
+      settleUntil = performance.now() + phoneSettleMs
+    }
+    startFlick(flickVelocity(samples), flickScroller, innerLock)
   }
 
   function onScroll() {
@@ -251,6 +388,19 @@ export function bindStoryScroll() {
         window.scrollTo(0, heldScroll)
       }
       return
+    }
+    if (phoneLayout() && !tracking && !coasting && performance.now() < settleUntil) {
+      const drift = Math.abs(window.scrollY - settledY)
+      if (drift > 1 && drift < phoneSettleSlack) {
+        window.scrollTo(0, settledY)
+        return
+      }
+      if (drift >= phoneSettleSlack) {
+        settleUntil = 0
+      }
+    }
+    if (tracking || coasting) {
+      settledY = window.scrollY
     }
     heldScroll = window.scrollY
     syncScroll()
@@ -280,6 +430,8 @@ export function bindStoryScroll() {
 
   return () => {
     stopMomentum()
+    window.clearTimeout(wheelTimer)
+    wheelOnInner = false
     unsubscribeGlobe()
     window.removeEventListener("scroll", onScroll)
     window.removeEventListener("resize", onResize)

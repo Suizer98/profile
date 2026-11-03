@@ -35,6 +35,10 @@ export function pageHeldForKeyboard() {
   return heldScroll !== null || keyboardWasOpen
 }
 
+export function phoneLayout() {
+  return window.matchMedia("(max-width: 767px)").matches
+}
+
 export function syncAppViewport() {
   const { height, width, offsetTop } = viewportSize()
   if (fullHeight === 0) {
@@ -54,6 +58,17 @@ export function syncAppViewport() {
     if (heldScroll !== null) {
       pinScroll(heldScroll)
     }
+    return
+  }
+
+  const browserChrome =
+    restoreScroll === null &&
+    !keyboardWasOpen &&
+    phoneLayout() &&
+    fullHeight > 0 &&
+    widthStable &&
+    Math.abs(fullHeight - height) < keyboardThreshold
+  if (browserChrome) {
     return
   }
 
