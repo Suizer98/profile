@@ -9,6 +9,7 @@ import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type P
 
 import { useGlobeStore } from "../../store/useGlobeStore.ts"
 import { useStoryStore } from "../../store/useStoryStore.ts"
+import { phoneLayout } from "../../utils/appViewport.ts"
 import { atWorkplace, cameraSettled, holdingAtWorkplace, mixCamera, orbitWorkplace, sampleCamera, type SampledCamera } from "./cameraPath.ts"
 import { preloadImagery, stopPreload } from "./preloadTiles.ts"
 import { createSeaMock } from "./seaMock.ts"
@@ -309,7 +310,7 @@ export function Globe() {
       container,
       map,
       viewingMode: "global",
-      qualityProfile: "high",
+      qualityProfile: phoneLayout() ? "low" : "high",
       environment: {
         atmosphereEnabled: true,
         starsEnabled: true,
