@@ -4,6 +4,11 @@ import { useGlobeStore, type GlobeCamera } from "../store/useGlobeStore.ts"
 import { useLayerStore } from "../store/useLayerStore.ts"
 import { useStoryStore } from "../store/useStoryStore.ts"
 
+const closerVisitAltitude = 4000
+const minVisitAltitude = 150
+const zoomRequestPattern =
+  /\b(zoom(?:ing|ed)?|closer|close-?up|up close|further|farther|overview|aerial|bird'?s?[ -]?eye|street[ -]?level|altitude|pull back|wide view|whole of)\b|\bfrom (?:above|space|far|afar|high|orbit|nearby)\b|\b\d+(?:\.\d+)?\s*(?:km|m|meters?|metres?|kilometers?|kilometres?|miles?)\b|\b(?:whole|entire) (?:city|country|region|island|state|continent)\b|\b(?:city|country|region|neighborhood|neighbourhood|district|campus) (?:view|level|scale)\b/i
+
 export type MapActionResult = {
   ok: boolean
   name: string
@@ -53,13 +58,18 @@ export const mapToolSchemas = [
     type: "function" as const,
     function: {
       name: "flyTo",
-      description: "Fly the globe to any place on Earth, including places outside the portfolio chapters.",
+      description:
+        "Fly the globe to any place on Earth, including places outside the portfolio chapters. The view zooms closer than the current chapter unless the visitor asks for a zoom or scale.",
       parameters: {
         type: "object",
         properties: {
           longitude: { type: "number", description: "Decimal degrees, -180 to 180." },
           latitude: { type: "number", description: "Decimal degrees, -85 to 85." },
-          altitude: { type: "number", description: "Meters above the ground." },
+          altitude: {
+            type: "number",
+            description:
+              "Meters above the ground. Omit unless the visitor asks for a zoom, height, distance, or scale.",
+          },
           tilt: { type: "number", description: "0 looks straight down. 60 is an oblique view." },
           heading: { type: "number", description: "Degrees clockwise from north." },
           place: { type: "string", description: "Short place name shown large, such as Kyoto." },
@@ -146,6 +156,25 @@ function asNumber(value: unknown) {
     return Number(value)
   }
   return null
+}
+
+function visitorSpecifiedZoom(request: string) {
+  return zoomRequestPattern.test(request)
+}
+
+function closerAltitude(current: number) {
+  if (current > closerVisitAltitude) {
+    return closerVisitAltitude
+  }
+  return Math.max(minVisitAltitude, current)
+}
+
+function flyAltitude(value: unknown, request: string) {
+  const requested = asNumber(value)
+  if (requested !== null && visitorSpecifiedZoom(request)) {
+    return requested
+  }
+  return closerAltitude(currentView().altitude)
 }
 
 function currentView(): GlobeCamera {
@@ -254,7 +283,7 @@ export function getMapState(): MapActionResult {
   }
 }
 
-export function runMapAction(name: string, args: Record<string, unknown>): MapActionResult {
+export function runMapAction(name: string, args: Record<string, unknown>, request = ""): MapActionResult {
   if (name === "goToSection") {
     return goToSection(String(args.id ?? ""))
   }
@@ -267,7 +296,7 @@ export function runMapAction(name: string, args: Record<string, unknown>): MapAc
     return flyTo(
       longitude,
       latitude,
-      asNumber(args.altitude) ?? 20000,
+      flyAltitude(args.altitude, request),
       asNumber(args.tilt) ?? 55,
       asNumber(args.heading) ?? 0,
       String(args.place ?? ""),

@@ -64,6 +64,15 @@ async function requestCompletion(messages: ApiMessage[]) {
   return data.message
 }
 
+function latestRequest(turns: ChatTurn[]) {
+  for (let index = turns.length - 1; index >= 0; index -= 1) {
+    if (turns[index].role === "user") {
+      return turns[index].content
+    }
+  }
+  return ""
+}
+
 export async function completeChat(turns: ChatTurn[]) {
   const messages: ApiMessage[] = [
     { role: "system", content: systemPrompt },
@@ -82,7 +91,7 @@ export async function completeChat(turns: ChatTurn[]) {
       tool_calls: calls,
     })
     for (const call of calls) {
-      const result = runMapAction(call.function.name, parseArgs(call.function.arguments))
+      const result = runMapAction(call.function.name, parseArgs(call.function.arguments), latestRequest(turns))
       messages.push({
         role: "tool",
         tool_call_id: call.id,
