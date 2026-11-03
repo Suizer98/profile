@@ -15,6 +15,7 @@ import { createSeaMock } from "./seaMock.ts"
 import { createShadowMock } from "./shadowMock.ts"
 import { createTrafficMock } from "./trafficMock.ts"
 import { createSatelliteMockLayer, startSatellites, syncSatelliteVisibility } from "./satelliteMock.ts"
+import { nightLightsUrl, syncDaylight } from "./daylight.ts"
 import { createWeatherLoop } from "./weatherLoop.ts"
 import { cameraStops } from "./stops.ts"
 import { satelliteMockId, seaMockId, shadowMockId, trafficMockId, useLayerStore } from "../../store/useLayerStore.ts"
@@ -276,12 +277,17 @@ export function Globe() {
     const home = cameraStops[0]
 
     const satelliteLayer = createSatelliteMockLayer()
+    const nightLights = new TileLayer({
+      url: nightLightsUrl,
+      opacity: 1,
+    })
     const map = new EsriMap({
       basemap: new Basemap({
         baseLayers: [
           new TileLayer({
             url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer",
           }),
+          nightLights,
         ],
       }),
       layers: [satelliteLayer],
@@ -295,6 +301,7 @@ export function Globe() {
       environment: {
         atmosphereEnabled: true,
         starsEnabled: true,
+        lighting: { type: "virtual" },
       },
       camera: {
         position: {
@@ -358,6 +365,7 @@ export function Globe() {
       traffic?.sync()
       shadow?.sync()
       weather.sync()
+      syncDaylight(nightLights)
     }
 
     function onWheel(event: WheelEvent) {
@@ -415,6 +423,7 @@ export function Globe() {
         traffic?.sync()
         shadow?.sync()
         weather.sync()
+        syncDaylight(nightLights)
         useStoryStore.getState().setReady(true)
         preloadFrom(useStoryStore.getState().index)
       })
