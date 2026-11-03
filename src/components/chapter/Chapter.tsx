@@ -24,9 +24,10 @@ export function Chapter({ id, kicker, title, detail, children }: ChapterProps) {
   const blend = useStoryStore((state) => state.blend)
   const stopIndex = cameraStops.findIndex((stop) => stop.id === id)
   const opacity = chapterOpacity(index, blend, stopIndex)
+  const phoneHeight = cameraStops[stopIndex]?.orbit ? "h-[220svh]" : "h-[140svh]"
 
   return (
-    <section data-stop={id} className="pointer-events-none h-[140svh] md:h-[200vh]">
+    <section data-stop={id} className={`pointer-events-none ${phoneHeight} md:h-[200vh]`}>
         <div className="sticky top-0 flex h-svh items-end px-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:h-screen md:px-5 md:pr-[8vw] md:pb-[12vh] md:pl-[20rem]">
         <div
           aria-hidden

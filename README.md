@@ -12,8 +12,6 @@ Chapter order is the scroll order. Chapters that share a group sit under the fir
 
 camera.altitude is meters above the ground. tilt 0 looks down. heading is degrees clockwise from north. Set orbit on a street-level chapter so visitors can drag to look around.
 
-Skill icons use ids from https://skillicons.dev.
-
 ## Start
 
 ```

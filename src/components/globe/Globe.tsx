@@ -9,7 +9,7 @@ import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type P
 
 import { useGlobeStore } from "../../store/useGlobeStore.ts"
 import { useStoryStore } from "../../store/useStoryStore.ts"
-import { atWorkplace, holdingAtWorkplace, orbitWorkplace, sampleCamera } from "./cameraPath.ts"
+import { atWorkplace, cameraSettled, holdingAtWorkplace, mixCamera, orbitWorkplace, sampleCamera, type SampledCamera } from "./cameraPath.ts"
 import { preloadImagery, stopPreload } from "./preloadTiles.ts"
 import { createSeaMock } from "./seaMock.ts"
 import { createShadowMock } from "./shadowMock.ts"
@@ -36,6 +36,8 @@ export function Globe() {
   const pointers = useRef(new Map<number, { x: number; y: number }>())
   const pinch = useRef<{ distance: number; x: number; y: number } | null>(null)
   const dragStart = useRef<{ x: number; y: number; heading: number; tilt: number; mode: "rotate" | "pan" | "orbit" } | null>(null)
+  const cameraTarget = useRef<SampledCamera | null>(null)
+  const cameraShown = useRef<SampledCamera | null>(null)
   const ready = useStoryStore((state) => state.ready)
   const storyIndex = useStoryStore((state) => state.index)
   const globeCamera = useGlobeStore((state) => state.camera)
@@ -68,10 +70,19 @@ export function Globe() {
     }
   }
 
+  function placeCamera(view: SceneView, camera: SampledCamera, immediate: boolean) {
+    cameraTarget.current = camera
+    if (!immediate && cameraShown.current) {
+      return
+    }
+    cameraShown.current = camera
+    showCamera(view, camera)
+  }
+
   function applyCamera(view: SceneView) {
     const camera = useGlobeStore.getState().camera
     if (camera) {
-      showCamera(view, camera)
+      placeCamera(view, camera, true)
       return
     }
     const { index, blend } = useStoryStore.getState()
@@ -83,7 +94,8 @@ export function Globe() {
     const sampled = atWorkplace(index) && parked
       ? orbitWorkplace(index, headingOffset.current)
       : sampleCamera(index, blend)
-    showCamera(view, sampled)
+    const draggingOrbit = headingOffset.current !== 0 && pointers.current.size > 0
+    placeCamera(view, sampled, draggingOrbit)
   }
 
   function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
@@ -413,6 +425,40 @@ export function Globe() {
 
     window.addEventListener("wheel", onWheel, { passive: false })
 
+    let lastTick = performance.now()
+    let recoverUntil = 0
+    let chaseFrame = 0
+    function chaseCamera(now: number) {
+      chaseFrame = requestAnimationFrame(chaseCamera)
+      const target = cameraTarget.current
+      const shown = cameraShown.current
+      if (!target || !shown) {
+        lastTick = now
+        return
+      }
+      const gap = now - lastTick
+      lastTick = now
+      if (gap > 48) {
+        recoverUntil = now + 480
+      }
+      const dt = Math.min(34, Math.max(0, gap))
+      if (cameraSettled(shown, target)) {
+        if (cameraShown.current !== target) {
+          cameraShown.current = target
+          showCamera(view, target)
+        }
+        return
+      }
+      let amount = 1 - Math.exp(-dt / 80)
+      if (now < recoverUntil) {
+        amount = Math.min(amount, dt / 480)
+      }
+      const next = mixCamera(shown, target, amount)
+      cameraShown.current = next
+      showCamera(view, next)
+    }
+    chaseFrame = requestAnimationFrame(chaseCamera)
+
     view
       .when(() => {
         viewReady = true
@@ -432,6 +478,7 @@ export function Globe() {
       })
 
     return () => {
+      cancelAnimationFrame(chaseFrame)
       viewReady = false
       viewRef.current = null
       stopPreload()

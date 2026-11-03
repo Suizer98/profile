@@ -1,3 +1,4 @@
+import { phoneLayout } from "../../utils/appViewport.ts"
 import { cameraStops, type CameraStop } from "./stops.ts"
 
 export type SampledCamera = {
@@ -29,6 +30,7 @@ function descentLatitude(from: number, to: number, amount: number) {
 }
 
 const holdStart = 0.55
+const phoneHoldStart = 0.18
 const skillsHold = 0.62
 const earthRadius = 6371000
 
@@ -40,13 +42,23 @@ function holdEase(amount: number) {
   return shifted * shifted * (3 - 2 * shifted)
 }
 
+function phoneWorkplaceTravel(amount: number) {
+  if (amount <= phoneHoldStart) {
+    return 0
+  }
+  return (amount - phoneHoldStart) / (1 - phoneHoldStart)
+}
+
 export function atWorkplace(index: number) {
   const stop = cameraStops[index]
   return Boolean(stop?.orbit)
 }
 
 export function holdingAtWorkplace(index: number, blend: number) {
-  return atWorkplace(index) && blend <= holdStart
+  if (!atWorkplace(index)) {
+    return false
+  }
+  return blend <= (phoneLayout() ? phoneHoldStart : holdStart)
 }
 
 export function orbitWorkplace(index: number, heading: number): SampledCamera {
@@ -77,7 +89,8 @@ export function sampleCamera(index: number, blend: number): SampledCamera {
   if (from.depart === "dive" && fromIndex !== toIndex) {
     return sampleDive(from, to, travel)
   }
-  const amount = fromIndex === toIndex ? 1 : atWorkplace(fromIndex) ? holdEase(travel) : travel
+  const workplaceTravel = phoneLayout() ? phoneWorkplaceTravel(travel) : holdEase(travel)
+  const amount = fromIndex === toIndex ? 1 : atWorkplace(fromIndex) ? workplaceTravel : travel
   const altitude = lerpAltitude(from.altitude, to.altitude, amount)
   const tilt = lerp(from.tilt, to.tilt, amount)
   const heading = lerpAngle(from.heading, to.heading, amount)
@@ -96,6 +109,26 @@ export function sampleCamera(index: number, blend: number): SampledCamera {
     tilt,
     heading,
   }
+}
+
+export function mixCamera(from: SampledCamera, to: SampledCamera, amount: number): SampledCamera {
+  const t = Math.min(1, Math.max(0, amount))
+  return {
+    longitude: lerp(from.longitude, to.longitude, t),
+    latitude: lerp(from.latitude, to.latitude, t),
+    altitude: lerpAltitude(from.altitude, to.altitude, t),
+    tilt: lerp(from.tilt, to.tilt, t),
+    heading: lerpAngle(from.heading, to.heading, t),
+  }
+}
+
+export function cameraSettled(from: SampledCamera, to: SampledCamera) {
+  const north = (to.latitude - from.latitude) * 111320
+  const east = (to.longitude - from.longitude) * 111320 * Math.cos((from.latitude * Math.PI) / 180)
+  const ground = Math.hypot(north, east)
+  const altitudeGap = Math.abs(Math.log(Math.max(to.altitude, 1)) - Math.log(Math.max(from.altitude, 1)))
+  const headingGap = Math.abs(((((to.heading - from.heading) % 360) + 540) % 360) - 180)
+  return ground < 4 && altitudeGap < 0.002 && headingGap < 0.15 && Math.abs(to.tilt - from.tilt) < 0.15
 }
 
 function lookOffset(altitude: number, tilt: number) {

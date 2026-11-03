@@ -15,5 +15,7 @@ export function daylightAmount(index: number, blend: number) {
 
 export function syncDaylight(nightLights: TileLayer) {
   const { index, blend } = useStoryStore.getState()
-  nightLights.opacity = 1 - daylightAmount(index, blend)
+  const opacity = 1 - daylightAmount(index, blend)
+  nightLights.opacity = opacity
+  nightLights.visible = opacity > 0.02
 }
